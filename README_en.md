@@ -1,41 +1,226 @@
-# SLR Input Kit (Sign Language Recognition)
+# MJ Sign
 
-This project is a high-performance sign language recognition input tool that combines Flutter and C++ FFI to enable real-time inference on multiple platforms including mobile, desktop, and web.
+This project is a cloud-oriented V2 prototype for sign language recognition.
 
-## System Architecture
+- Flutter client plugin: `slr_input_kit/`
+- Spring Boot bridge: `sign_bridge/`
+- Python mock GPU server: `sign_gemma_mock/`
+- Shared protobuf schema: `schema/`
 
-The system is designed with a 3-layer architecture to balance high-performance AI inference with a flexible cross-platform UI.
+## Current Architecture
 
-### 1. Frontend Layer (Flutter/Dart)
-- **Camera Control:** Uses `flutter_webrtc` for low-latency camera frame capture.
-- **UI Rendering:** Real-time overlay of recognized sign language results using Flutter's high-performance engine.
-- **State Management:** Handles user interactions and processing of recognition results/text.
+```mermaid
+graph TD
+    A["Flutter client / slr_input_kit"] -->|"protobuf landmark frames"| B["Spring Boot bridge / sign_bridge"]
+    B --> C["Session buffer + idle timeout flush"]
+    C --> D["Async inference dispatcher"]
+    D --> E{"Inference provider"}
+    E -->|"http"| F["HTTP GPU serving client"]
+    E -->|"grpc"| G["gRPC extension point"]
+    E -->|"queue"| H["Queue worker contract"]
+    F --> I["GPU server / sign_gemma_mock or real serving backend"]
+    H --> I
+```
 
-### 2. Bridge Layer (Dart FFI)
-- **Native Invocation:** Uses `dart:ffi` to directly access C++ memory from Dart.
-- **Binding Automation:** Automatically generates Dart classes from C headers via `ffigen` to ensure type safety.
+## Backend Features Implemented
 
-### 3. Native Inference Layer (C/C++)
-- **Landmark Extraction:** Extracts 543 key points using the MediaPipe Holistic C++ API.
-- **AI Inference:** Executes the SignFormer-GCN (TensorFlow Lite) model with 8-bit quantization for real-time translation even on low-end devices.
-- **Optimization:** Maximizes CPU/GPU acceleration for real-time processing at 30~60 FPS.
+- Protobuf landmark intake over `/ws/sign`
+- Session-aware buffering and frame window aggregation
+- Idle-timeout based automatic flush
+- Async dispatch with per-session in-flight protection
+- Provider routing for `http`, `grpc`, and `queue`
+- HTTP serving contract through `GpuInferenceRequest` and `GpuInferenceResponse`
+- Queue worker contract through `QueueInferenceTask`, `QueueInferenceResult`, `QueueInferenceTransport`, `QueueWorkerBackend`, and broker-style transport skeletons
+- Operational endpoints
+  - `GET /internal/healthz`
+  - `GET /internal/readyz`
+  - `GET /internal/metrics`
 
-## Project Structure
+## Provider Model
 
-- `slr_input_kit/`: Core Flutter FFI plugin source
-  - `src/`: C++ native source code and CMake configuration
-  - `lib/`: Dart API and FFI binding code
-- `example/`: Demo application demonstrating plugin features
+Inference transport is selected by `sign.gpu.provider`.
 
-## Getting Started
+- `http`: active implementation via `HttpInferenceGateway`
+- `grpc`: extension stub via `GrpcInferenceGateway`
+- `queue`: queue-backed worker contract via `QueueInferenceGateway`
 
-1. Install the Flutter SDK.
-2. Install dependencies in the `slr_input_kit` folder: `flutter pub get`
-3. Generate native bindings: `dart run ffigen --config ffigen.yaml`
-4. Run the example app: `cd example && flutter run`
+The queue provider now includes a second-level transport router:
 
-## Tech Stack
-- **Framework:** Flutter (Dart)
-- **Native Bridge:** Dart FFI
-- **AI Engine:** MediaPipe Holistic, TensorFlow Lite (SignFormer-GCN)
-- **Streaming:** WebRTC
+- `in-memory`: executable local transport
+- `kafka`: broker-style skeleton
+- `rabbitmq`: broker-style skeleton
+
+The contract remains executable today via the in-memory transport plus an HTTP-backed worker backend, while Kafka and RabbitMQ now have explicit transport extension points ready for real client libraries.
+
+## Repository Structure
+
+- `slr_input_kit/`
+  Flutter public API, demo widget, protobuf models, and Sign Bridge client
+- `sign_bridge/`
+  Spring Boot WebSocket bridge, buffering, async dispatch, provider routing, queue worker contract, and ops endpoints
+- `sign_gemma_mock/`
+  FastAPI mock serving backend following the current HTTP inference contract
+- `schema/`
+  Shared protobuf schema across Flutter, Java, and Python
+
+## Key Configuration
+
+Main backend settings live in `sign_bridge/src/main/resources/application.properties`.
+
+- `sign.gpu.provider`
+- `sign.gpu.base-url`
+- `sign.gpu.infer-path`
+- `sign.gpu.health-path`
+- `sign.gpu.grpc-target`
+- `sign.gpu.queue-topic`
+- `sign.gpu.queue-transport`
+- `sign.gpu.queue-request-topic`
+- `sign.gpu.queue-result-topic`
+- `sign.gpu.queue-consumer-group`
+- `sign.gpu.queue-exchange`
+- `sign.gpu.queue-routing-key`
+- `sign.gpu.queue-timeout-ms`
+- `sign.window.min-frames`
+- `sign.window.idle-timeout-ms`
+- `sign.async.core-pool-size`
+
+## Local Development
+
+1. Start the mock GPU server
+
+```bash
+cd sign_gemma_mock
+python main.py
+```
+
+2. Start the Spring bridge
+
+```bash
+cd sign_bridge
+./gradlew bootRun
+```
+
+3. Validate the Flutter package
+
+```bash
+dart analyze slr_input_kit
+```
+
+## Local Broker Environments
+
+### Kafka
+
+Start Kafka:
+
+```bash
+docker compose -f docker-compose.kafka.yml up -d
+```
+
+Run the bridge with the Kafka profile:
+
+```bash
+cd sign_bridge
+./gradlew bootRun --args='--spring.profiles.active=kafka'
+```
+
+This profile enables:
+
+- `sign.gpu.provider=queue`
+- `sign.gpu.queue-transport=kafka`
+- `sign.gpu.queue-broker-mode=spring`
+
+### RabbitMQ
+
+Start RabbitMQ:
+
+```bash
+docker compose -f docker-compose.rabbitmq.yml up -d
+```
+
+Run the bridge with the RabbitMQ profile:
+
+```bash
+cd sign_bridge
+./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
+```
+
+This profile enables:
+
+- `sign.gpu.provider=queue`
+- `sign.gpu.queue-transport=rabbitmq`
+- `sign.gpu.queue-broker-mode=spring`
+
+### Shutdown
+
+```bash
+docker compose -f docker-compose.kafka.yml down
+docker compose -f docker-compose.rabbitmq.yml down
+```
+
+## Integrated Local Stacks
+
+Use the integrated Compose files when you want the broker, mock GPU, and Spring bridge together in one local stack:
+
+```bash
+docker compose -f docker-compose.stack.kafka.yml up -d
+docker compose -f docker-compose.stack.rabbitmq.yml up -d
+```
+
+The bridge containers in these stacks override broker host settings for Docker-internal networking, so the queue provider talks to `kafka:9092` or `rabbitmq:5672`, while the mock GPU remains available at `http://mock-gpu:8000`.
+
+## End-to-End Queue Validation
+
+The repository now includes executable scripts that validate the real local queue worker path, including serializer or converter wiring, worker consumption, reply publication, and the WebSocket-to-queue-to-GPU round trip.
+
+Kafka validation:
+
+```bash
+./scripts/verify_kafka_stack.sh
+```
+
+RabbitMQ validation:
+
+```bash
+./scripts/verify_rabbitmq_stack.sh
+```
+
+These scripts:
+
+- start the integrated Docker stack
+- wait for `/internal/healthz` and `/internal/readyz`
+- send a binary protobuf WebSocket payload to `/ws/sign`
+- verify that a final inference response is produced through the queue-backed worker flow
+- assert that metrics show at least one completed inference
+
+Set `KEEP_STACK=1` if you want the containers to stay up after the validation run.
+
+## DLQ and Retry Samples
+
+Broker-specific retry and dead-letter policy samples are available in:
+
+- `sign_bridge/src/main/resources/application-kafka-dlq.properties`
+- `sign_bridge/src/main/resources/application-rabbitmq-dlq.properties`
+
+These sample files cover:
+
+- retry topic or queue naming
+- DLQ naming
+- max attempts and backoff values
+- listener defaults commonly paired with broker-side retry handling
+
+They are sample baselines, not production-final settings.
+
+## Verification
+
+Backend verification:
+
+```bash
+cd sign_bridge
+./gradlew test
+```
+
+For full local integration coverage with real broker containers, run the queue validation scripts above.
+
+## Current Status
+
+This repository is no longer best described as a local FFI-only pipeline. The active implementation direction is a cloud bridge architecture with structured inference providers, async buffering, operational visibility, and a queue-ready worker contract.

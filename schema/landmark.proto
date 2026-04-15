@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package mj.sign;
+
+option java_package = "com.mj.sign.protos";
+option java_outer_classname = "LandmarkProto";
+
+// Represents a single 3D point
+message Point3D {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+// Represents a frame of landmarks extracted from MediaPipe
+message LandmarkFrame {
+  // Timestamp in milliseconds
+  int64 timestamp_ms = 1;
+
+  // Filtered hand landmarks (typically 21 points per hand)
+  repeated Point3D left_hand = 2;
+  repeated Point3D right_hand = 3;
+
+  // Filtered pose landmarks (essential upper body joints)
+  repeated Point3D pose = 4;
+
+  // Filtered face landmarks (essential lip/jaw contour points)
+  repeated Point3D face_contour = 5;
+}
+
+message ClientStreamChunk {
+  string session_id = 1;
+  repeated LandmarkFrame frames = 2; // Support batching multiple frames
+}
+
+message TranslationResult {
+  string session_id = 1;
+  string text = 2;         // The translated text up to this point
+  bool is_final = 3;       // True if this is a complete sentence/segment (e.g. VAD triggered)
+  float confidence = 4;
+}

@@ -1,0 +1,42 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: mj-sign-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  mock-gpu:
+    image: python:3.11-slim
+    container_name: mj-sign-mock-gpu
+    working_dir: /workspace/sign_gemma_mock
+    volumes:
+      - .:/workspace
+    command: >
+      /bin/sh -lc
+      "pip install --no-cache-dir fastapi uvicorn protobuf &&
+      python main.py"
+    ports:
+      - "8000:8000"
+
+  bridge:
+    image: gradle:8.10.2-jdk21
+    container_name: mj-sign-bridge-rabbitmq
+    working_dir: /workspace/sign_bridge
+    volumes:
+      - .:/workspace
+      - gradle-cache:/home/gradle/.gradle
+    command: >
+      /bin/sh -lc
+      "./gradlew bootRun --args='--spring.profiles.active=rabbitmq --sign.gpu.base-url=http://mock-gpu:8000 --spring.rabbitmq.host=rabbitmq --spring.rabbitmq.port=5672'"
+    depends_on:
+      - rabbitmq
+      - mock-gpu
+    ports:
+      - "8080:8080"
+
+volumes:
+  gradle-cache:
