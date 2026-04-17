@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MJ Sign — Cloud AI Sign Recognition</title>
+    <meta name="description" content="실시간 수어 인식 및 클라우드 브리지 데모 세션">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="main-header glass">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">MJ</span>
+                    <span class="logo-text">Sign Bridge <span class="badge">V2 BETA</span></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="system-status">
+                    <span class="status-dot pulse green"></span>
+                    <span class="status-text">Cloud Bridge Operational</span>
+                </div>
+                <div class="session-info">
+                    <span class="label">Session ID:</span>
+                    <span id="session-id" class="value">mj_sn_77c2...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard">
+            <!-- Left Panel: Landmark Visualizer -->
+            <section class="visualizer-section glass">
+                <div class="section-header">
+                    <h2>Live Landmark Capture</h2>
+                    <div class="controls">
+                        <span class="capture-source">Demo Source: Hand_Pose_V3</span>
+                    </div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="landmark-canvas"></canvas>
+                    <div class="overlay-data">
+                        <div class="data-item">
+                            <label>Confidence</label>
+                            <span id="confidence-low" class="value">0.98</span>
+                        </div>
+                        <div class="data-item">
+                            <label>Frame Rate</label>
+                            <span id="fps" class="value">30 FPS</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Middle Panel: Metrics -->
+            <section class="metrics-section">
+                <div class="metric-card glass">
+                    <div class="metric-label">Processed Frames</div>
+                    <div id="metric-frames" class="metric-value">12,482</div>
+                    <div class="metric-chart-mini" id="chart-frames"></div>
+                </div>
+                <div class="metric-card glass">
+                    <div class="metric-label">Avg. Latency (Inference)</div>
+                    <div id="metric-latency" class="metric-value">42ms</div>
+                    <div class="metric-chart-mini" id="chart-latency"></div>
+                </div>
+                <div class="metric-card glass active">
+                    <div class="metric-label">GPU Utilization</div>
+                    <div id="metric-gpu" class="metric-value">68%</div>
+                    <div class="metric-chart-mini" id="chart-gpu"></div>
+                </div>
+                <div class="metric-card glass">
+                    <div class="metric-label">Active Workers</div>
+                    <div id="metric-workers" class="metric-value">14</div>
+                    <div class="metric-chart-mini" id="chart-workers"></div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Translation Feed -->
+            <section class="feed-section glass">
+                <div class="section-header">
+                    <h2>Real-time Translation</h2>
+                    <span class="source-lang">KSL (Korean Sign Language)</span>
+                </div>
+                <div class="feed-container" id="translation-feed">
+                    <!-- Messages will be injected here -->
+                    <div class="feed-item final">
+                        <span class="time">10:45:12</span>
+                        <p class="text">반갑습니다. 무엇을 도와드릴까요?</p>
+                    </div>
+                    <div class="feed-item current">
+                        <span class="time">10:45:30</span>
+                        <p class="text typing" id="current-translation">배가 좀 아파서 ...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer / Architecture Section -->
+        <footer class="arch-section glass">
+            <div class="arch-header">
+                <h3>V2 Cloud Bridge Architecture</h3>
+                <p>Async buffering with provider routing & worker contracts</p>
+            </div>
+            <div class="arch-visual">
+                <div class="node" data-label="Flutter Client">
+                    <div class="icon">📱</div>
+                    <span>Protobuf Stream</span>
+                </div>
+                <div class="arrow"></div>
+                <div class="node active" data-label="Spring Bridge">
+                    <div class="icon">⚡</div>
+                    <span>Session Buffer</span>
+                </div>
+                <div class="arrow"></div>
+                <div class="node" data-label="Inference Gateway">
+                    <div class="icon">🛡️</div>
+                    <span>In-Memory / Kafka</span>
+                </div>
+                <div class="arrow"></div>
+                <div class="node highlight" data-label="Sign-Gemma (GPU)">
+                    <div class="icon">🧠</div>
+                    <span>Model Serving</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
