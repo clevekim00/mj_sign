@@ -20,7 +20,18 @@ graph TD
     E -->|"queue"| H["Queue 워커 계약"]
     F --> I["GPU 서버 / sign_gemma_mock 또는 실제 서빙 백엔드"]
     H --> I
+    B --> J["LLM 보정 레이어 / Gemma 2 (Ollama)"]
+    J --> K["자연어 출력 (한국어 문장)"]
 ```
+
+## LLM 기반 번역 보정 (V2 확장)
+
+본 프로젝트는 수어 인식 모델에서 추출된 원시 키워드(예: "나", "밥", "먹다")를 **Gemma 2**를 활용하여 문법적으로 완벽하고 자연스러운 한국어 문장으로 변환하는 LLM 보정 레이어를 포함하고 있습니다.
+
+- **Kotlin 전환**: `sign_bridge` 모듈을 Kotlin으로 현대화하고 `build.gradle.kts`를 적용했습니다.
+- **Spring AI**: Spring AI Ollama 스타터를 통해 로컬 LLM과 연동합니다.
+- **프롬프트 엔지니어링**: 수어-문장 변환을 위한 전문 시스템 프롬프트를 포함합니다.
+- **REST API**: 키워드 보정을 위한 새로운 엔드포인트 `POST /api/v2/translate`를 제공합니다.
 
 ## 현재 구현된 백엔드 기능
 
@@ -57,7 +68,7 @@ graph TD
 - `slr_input_kit/`
   Flutter 공개 API, 데모 위젯, protobuf 모델, Sign Bridge 클라이언트
 - `sign_bridge/`
-  Spring Boot WebSocket 브릿지, 버퍼링, async dispatch, provider routing, queue 워커 계약, 운영 endpoint
+  Spring Boot WebSocket 브릿지 (Kotlin/build.gradle.kts), 버퍼링 로직, 비동기 디스패치, 서버 라우팅, 큐 워커 계약 및 **Gemma 2 LLM 번역 레이어**.
 - `sign_gemma_mock/`
   현재 HTTP 추론 계약을 따르는 FastAPI mock 서빙 백엔드
 - `schema/`
@@ -218,6 +229,21 @@ RabbitMQ 검증:
 cd sign_bridge
 ./gradlew test
 ```
+
+## LLM 기능 및 Swagger 검증
+
+### 번역 API 테스트
+```bash
+curl -X POST http://localhost:8080/api/v2/translate \
+     -H "Content-Type: application/json" \
+     -d '{"keywords": ["나", "밥", "먹다"]}'
+```
+
+### Swagger UI (API 문서)
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI Docs**: `http://localhost:8080/v3/api-docs`
+
+로컬 Ollama 서버에 Gemma 2 모델이 실행 중이어야 합니다.
 
 실제 로컬 브로커까지 포함한 end-to-end 검증은 위 queue 검증 스크립트를 사용하면 됩니다.
 

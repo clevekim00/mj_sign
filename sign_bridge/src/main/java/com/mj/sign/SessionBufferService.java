@@ -21,6 +21,7 @@ public class SessionBufferService {
     private final BridgeMetricsService metricsService;
     private final ConcurrentHashMap<String, BufferState> sessionBuffers = new ConcurrentHashMap<>();
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SessionBufferService(
             @Value("${sign.window.min-frames:8}") int minFramesForInference,
             @Value("${sign.window.max-buffered-frames:24}") int maxBufferedFrames,

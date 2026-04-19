@@ -9,6 +9,7 @@ Sign language recognition prototype focused on a cloud-oriented V2 pipeline:
 
 - [한국어 문서](./README_ko.md)
 - [English README](./README_en.md)
+- [LLM Integration Prompt](./PROMPT_LLM_INTEGRATION.md)
 
 ## Current Architecture
 
@@ -23,7 +24,18 @@ graph TD
     E -->|"queue"| H["Queue worker contract"]
     F --> I["GPU server / sign_gemma_mock or real serving backend"]
     H --> I
+    B --> J["LLM Refinement Layer / Gemma 2 via Ollama"]
+    J --> K["Natural Language Output"]
 ```
+
+## LLM-Powered Translation (V2 Extension)
+
+The project now includes an LLM-based refinement layer that transforms raw sign language keywords (e.g., "I", "rice", "eat") into natural, grammatically correct sentences using **Gemma 2**.
+
+- **Kotlin Migration**: The `sign_bridge` module has been modernized to Kotlin and uses `build.gradle.kts`.
+- **Spring AI**: Integrated via the Spring AI Ollama starter.
+- **Prompt Engineering**: Includes specialized system prompts for sign-to-sentence translation.
+- **REST API**: New endpoint `POST /api/v2/translate` for keyword refinement.
 
 ## Implemented Backend Capabilities
 
@@ -60,7 +72,7 @@ The worker contract remains executable today through the in-memory transport and
 - `slr_input_kit/`
   Flutter package with the public client API, demo widget, protobuf models, and Sign Bridge client.
 - `sign_bridge/`
-  Spring Boot WebSocket bridge, buffering logic, async dispatch, provider routing, queue worker contract, and ops endpoints.
+  Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
 - `sign_gemma_mock/`
   FastAPI mock serving backend that follows the current HTTP inference contract.
 - `schema/`
@@ -221,6 +233,18 @@ Backend verification currently runs with:
 cd sign_bridge
 ./gradlew test
 ```
+
+## LLM Feature Verification
+
+Test the translation endpoint:
+
+```bash
+curl -X POST http://localhost:8080/api/v2/translate \
+     -H "Content-Type: application/json" \
+     -d '{"keywords": ["나", "밥", "먹다"]}'
+```
+
+Requires a local Ollama server running Gemma 2.
 
 For full local integration coverage with real broker containers, run the queue verification scripts above.
 

@@ -1,0 +1,7 @@
+*.class
+*.log
+/sign_bridge/.kotlin/sessions
+/sign_bridge/bin/
+/sign_bridge/build/
+/bin/
+/build/

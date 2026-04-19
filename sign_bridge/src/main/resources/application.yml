@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: sign-bridge
+  # Swagger/OpenAPI configuration
+  springdoc:
+    swagger-ui:
+      path: /swagger-ui.html
+    api-docs:
+      path: /v3/api-docs
+  main:
+    banner-mode: "off"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+    
+  # Spring AI Configuration
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: gemma4:latest
+          temperature: 0.7
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ${sign.gpu.queue-consumer-group}
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+sign:
+  gpu:
+    provider: http
+    base-url: http://localhost:8000
+    infer-path: /api/v2/recognize
+    health-path: /
+    grpc-target: dns:///localhost:50051
+    queue-transport: in-memory
+    queue-broker-mode: loopback
+    queue-topic: sign.inference.requests
+    queue-request-topic: sign.inference.requests
+    queue-result-topic: sign.inference.results
+    queue-consumer-group: sign-bridge
+    queue-exchange: sign.inference
+    queue-routing-key: sign.inference.request
+    queue-result-routing-key: sign.inference.result
+    queue-timeout-ms: 5000
+    timeout-ms: 2000
+    probe-timeout-ms: 1000
+  websocket:
+    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*"
+  window:
+    min-frames: 8
+    max-buffered-frames: 24
+    idle-timeout-ms: 1200
+    flush-threads: 1
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+    queue-capacity: 16

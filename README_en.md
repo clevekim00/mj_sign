@@ -20,7 +20,18 @@ graph TD
     E -->|"queue"| H["Queue worker contract"]
     F --> I["GPU server / sign_gemma_mock or real serving backend"]
     H --> I
+    B --> J["LLM Refinement Layer / Gemma 2 (Ollama)"]
+    J --> K["Natural Language Output"]
 ```
+
+## LLM-Powered Translation (V2 Extension)
+
+The project now includes an LLM-based refinement layer that transforms raw sign language keywords (e.g., "I", "rice", "eat") into natural, grammatically correct sentences using **Gemma 2**.
+
+- **Kotlin Migration**: The `sign_bridge` module has been modernized to Kotlin and uses `build.gradle.kts`.
+- **Spring AI**: Integrated via the Spring AI Ollama starter for local LLM communication.
+- **Prompt Engineering**: Includes specialized system prompts for sign-to-sentence translation and refinement.
+- **REST API**: New endpoint `POST /api/v2/translate` for keyword refinement.
 
 ## Backend Features Implemented
 
@@ -57,7 +68,7 @@ The contract remains executable today via the in-memory transport plus an HTTP-b
 - `slr_input_kit/`
   Flutter public API, demo widget, protobuf models, and Sign Bridge client
 - `sign_bridge/`
-  Spring Boot WebSocket bridge, buffering, async dispatch, provider routing, queue worker contract, and ops endpoints
+  Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
 - `sign_gemma_mock/`
   FastAPI mock serving backend following the current HTTP inference contract
 - `schema/`
@@ -218,6 +229,24 @@ Backend verification:
 cd sign_bridge
 ./gradlew test
 ```
+
+## LLM Feature & Swagger Verification
+
+### Translation API Test
+Test the keyword refinement endpoint:
+
+```bash
+curl -X POST http://localhost:8080/api/v2/translate \
+     -H "Content-Type: application/json" \
+     -d '{"keywords": ["나", "밥", "먹다"]}'
+```
+
+### Swagger UI
+Access the interactive API documentation at:
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI Docs**: `http://localhost:8080/v3/api-docs`
+
+Requires a local Ollama server running Gemma 2.
 
 For full local integration coverage with real broker containers, run the queue validation scripts above.
 

@@ -13,6 +13,7 @@ public class HttpGpuServingClient implements GpuServingClient {
     private final RestTemplate restTemplate;
     private final GpuServingProperties properties;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public HttpGpuServingClient(
             RestTemplateBuilder restTemplateBuilder,
             GpuServingProperties properties
