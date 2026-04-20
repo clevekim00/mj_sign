@@ -11,6 +11,8 @@ const App: React.FC = () => {
   const [translatedText, setTranslatedText] = useState('수어를 시작해 주세요...');
   const [keywords, setKeywords] = useState<string[]>([]);
   const [bridgeStatus, setBridgeStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const [isSignMode, setIsSignMode] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,6 +110,29 @@ const App: React.FC = () => {
       });
     });
   };
+
+  const SignHandIcon = () => (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={isSignMode ? "text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]" : "text-text-muted text-opacity-50"}>
+      {/* Hybrid Concept: Hand + Camera (Option 5) */}
+      <path d="M4 14C4 14 1 14.5 1 12.5C1 10.5 2.5 7.5 5 7C7.5 6.5 10.5 8 10.5 11C10.5 14 9 16 7 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 9C12 9 13.5 8 15.5 8C17.5 8 19 9.5 19 11.5V13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      
+      {/* Camera Engine Symbol */}
+      <rect x="13" y="11" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M21 12.5L23 11V17L21 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      
+      {/* Dynamic Pulse for Lens */}
+      {isSignMode && (
+        <motion.circle 
+          animate={{ r: [1.5, 2.5, 1.5], opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1, repeat: Infinity }}
+          cx="17" cy="14" r="1.5" fill="currentColor" 
+        />
+      )}
+      
+      <path d="M6.5 11H8.5M10.5 12H12.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+    </svg>
+  );
 
   return (
     <div className="gradient-bg flex flex-col items-center p-4 lg:p-8 min-h-screen relative overflow-hidden">
@@ -261,6 +286,44 @@ const App: React.FC = () => {
           </div>
         </motion.section>
       </main>
+
+      {/* Message Input Bar */}
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="w-full max-w-4xl mt-8 z-20"
+      >
+        <div className="glass-panel p-2 flex items-center gap-3 bg-black/40 border-white/5 shadow-2xl">
+          <button className="p-3 text-text-muted hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          
+          <div className="flex-1 relative group">
+            <input 
+              type="text" 
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="메시지 입력" 
+              className="w-full bg-white/5 border border-white/5 focus:border-blue-500/30 rounded-2xl py-3.5 pl-6 pr-12 text-sm font-medium transition-all outline-none placeholder:text-text-muted/40"
+            />
+            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-blue-400 transition-colors">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </button>
+          </div>
+
+          <button 
+            onClick={() => setIsSignMode(!isSignMode)}
+            className={`p-3.5 rounded-2xl transition-all duration-300 ${isSignMode ? 'bg-blue-500/20' : 'hover:bg-white/5'}`}
+          >
+            <SignHandIcon />
+          </button>
+
+          <button className="p-3.5 bg-blue-600 hover:bg-blue-500 rounded-2xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 ml-1">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 14-7-1.5 14L11 17l-4 4V11L5 12z"/></svg>
+          </button>
+        </div>
+      </motion.div>
 
       <footer className="mt-8 py-4 w-full max-w-7xl flex justify-between items-center text-text-muted text-[10px] tracking-widest uppercase z-10 border-t border-white/5">
         <div className="flex gap-4">

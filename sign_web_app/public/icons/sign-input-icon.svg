@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sign-hybrid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+  
+  {/* Option 5: Hand Silhouette */}
+  <path d="M256 597.3C256 597.3 128 618.6 128 533.3C128 448 192 320 298.6 298.6C405.3 277.3 533.3 341.3 533.3 469.3C533.3 597.3 469.3 682.6 384 746.6" stroke="url(#sign-hybrid-grad)" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M597.3 384C597.3 384 661.3 341.3 746.6 341.3C832 341.3 896 405.3 896 490.6V576" stroke="url(#sign-hybrid-grad)" stroke-width="56" stroke-linecap="round" />
+  
+  {/* Camera Engine Housing */}
+  <rect x="640" y="469.3" width="256" height="192" rx="32" fill="url(#sign-hybrid-grad)" fill-opacity="0.1" stroke="url(#sign-hybrid-grad)" stroke-width="48" stroke-linejoin="round" />
+  <path d="M896 533.3L981.3 469.3V725.3L896 661.3" stroke="url(#sign-hybrid-grad)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round" />
+  
+  {/* Stylized Lens Element */}
+  <circle cx="768" cy="565.3" r="48" fill="url(#sign-hybrid-grad)" />
+</svg>
