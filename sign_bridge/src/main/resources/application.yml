@@ -56,7 +56,7 @@ sign:
     timeout-ms: 2000
     probe-timeout-ms: 1000
   websocket:
-    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*"
+    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost"
   window:
     min-frames: 8
     max-buffered-frames: 24

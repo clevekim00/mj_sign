@@ -15,7 +15,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     public WebSocketConfig(
             SignWebSocketHandler signWebSocketHandler,
-            @Value("${sign.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*}") String[] allowedOriginPatterns
+            @Value("${sign.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost}") String[] allowedOriginPatterns
     ) {
         this.signWebSocketHandler = signWebSocketHandler;
         this.allowedOriginPatterns = allowedOriginPatterns;
@@ -24,6 +24,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(signWebSocketHandler, "/ws/sign")
-                .setAllowedOriginPatterns(allowedOriginPatterns);
+                .addInterceptors(new org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor() {
+                    @Override
+                    public boolean beforeHandshake(org.springframework.http.server.ServerHttpRequest request, org.springframework.http.server.ServerHttpResponse response, org.springframework.web.socket.WebSocketHandler wsHandler, java.util.Map<String, Object> attributes) throws Exception {
+                        System.out.println("DEBUG: Incoming WebSocket Handshake attempt from: " + request.getRemoteAddress());
+                        return super.beforeHandshake(request, response, wsHandler, attributes);
+                    }
+                })
+                .setAllowedOriginPatterns("*");
     }
 }
