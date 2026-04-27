@@ -32,6 +32,11 @@ public class QueueInferenceGateway implements InferenceGateway {
 
     @Override
     public TranslationResult sendForInference(ClientStreamChunk chunk) {
+        return sendForInference(chunk, InferenceContext.defaults());
+    }
+
+    @Override
+    public TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
         QueueInferenceTask task = new QueueInferenceTask(
                 UUID.randomUUID().toString(),
                 chunk.getSessionId(),
@@ -41,7 +46,11 @@ public class QueueInferenceGateway implements InferenceGateway {
                         Base64.getEncoder().encodeToString(chunk.toByteArray()),
                         chunk.getFramesCount(),
                         "protobuf-b64",
-                        CLIENT_SCHEMA_VERSION
+                        CLIENT_SCHEMA_VERSION,
+                        context.protocol_version(),
+                        context.locale(),
+                        context.sign_language(),
+                        context.model_profile()
                 ),
                 Instant.now()
         );

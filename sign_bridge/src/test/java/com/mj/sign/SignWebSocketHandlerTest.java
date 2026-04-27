@@ -99,6 +99,37 @@ class SignWebSocketHandlerTest {
     }
 
     @Test
+    void forwardsLanguageContextFromWebSocketQueryToInferenceGateway() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(1, 6, 1000, clock, metricsService);
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession(
+                "ws-locale",
+                URI.create("ws://localhost/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=mj-sign-model-v2")
+        );
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(session, new BinaryMessage(chunk("stream-locale", 1).toByteArray()));
+
+        assertTrue(gateway.called);
+        assertEquals("en-US", gateway.lastContext.locale());
+        assertEquals("asl", gateway.lastContext.sign_language());
+        assertEquals("sign-gemma", gateway.lastContext.model_profile());
+        assertEquals("mj-sign-model-v2", gateway.lastContext.protocol_version());
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"locale\":\"en-US\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"sign_language\":\"asl\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"model_profile\":\"sign-gemma\"")));
+    }
+
+    @Test
     void flushesBufferedFramesAfterIdleTimeout() throws Exception {
         MutableClock clock = new MutableClock();
         BridgeMetricsService metricsService = new BridgeMetricsService();
@@ -277,6 +308,7 @@ class SignWebSocketHandlerTest {
         private final TranslationResult result;
         private boolean called;
         private ClientStreamChunk lastChunk;
+        private InferenceContext lastContext;
 
         private RecordingInferenceGateway() {
             this(
@@ -300,8 +332,14 @@ class SignWebSocketHandlerTest {
 
         @Override
         public TranslationResult sendForInference(ClientStreamChunk chunk) {
+            return sendForInference(chunk, InferenceContext.defaults());
+        }
+
+        @Override
+        public TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
             this.called = true;
             this.lastChunk = chunk;
+            this.lastContext = context;
             return result;
         }
     }
@@ -361,11 +399,17 @@ class SignWebSocketHandlerTest {
 
     private static final class RecordingWebSocketSession implements WebSocketSession {
         private final String id;
+        private final URI uri;
         private final List<String> messages = new ArrayList<>();
         private boolean open = true;
 
         private RecordingWebSocketSession(String id) {
+            this(id, URI.create("ws://localhost/ws/sign"));
+        }
+
+        private RecordingWebSocketSession(String id, URI uri) {
             this.id = id;
+            this.uri = uri;
         }
 
         @Override
@@ -375,7 +419,7 @@ class SignWebSocketHandlerTest {
 
         @Override
         public URI getUri() {
-            return URI.create("ws://localhost/ws/sign");
+            return uri;
         }
 
         @Override

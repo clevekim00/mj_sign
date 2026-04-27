@@ -10,7 +10,7 @@ public class GpuServingProperties {
     private String provider = "http";
     private String baseUrl = "http://localhost:8000";
     private String inferPath = "/api/v2/recognize";
-    private String healthPath = "/";
+    private String healthPath = "/ready";
     private String grpcTarget = "dns:///localhost:50051";
     private String queueTransport = "in-memory";
     private String queueBrokerMode = "loopback";

@@ -1,0 +1,31 @@
+services:
+  mock-gpu:
+    image: python:3.11-slim
+    container_name: mj-sign-mock-gpu-http
+    working_dir: /workspace/sign_gemma_mock
+    volumes:
+      - .:/workspace
+    command: >
+      /bin/sh -lc
+      "pip install --no-cache-dir fastapi uvicorn protobuf &&
+      python main.py"
+    ports:
+      - "8000:8000"
+
+  bridge:
+    image: gradle:8.10.2-jdk21
+    container_name: mj-sign-bridge-http
+    working_dir: /workspace/sign_bridge
+    volumes:
+      - .:/workspace
+      - gradle-cache:/home/gradle/.gradle
+    command: >
+      /bin/sh -lc
+      "./gradlew bootRun --args='--sign.gpu.provider=http --sign.gpu.base-url=http://mock-gpu:8000 --sign.gpu.health-path=/ready'"
+    depends_on:
+      - mock-gpu
+    ports:
+      - "8080:8080"
+
+volumes:
+  gradle-cache:

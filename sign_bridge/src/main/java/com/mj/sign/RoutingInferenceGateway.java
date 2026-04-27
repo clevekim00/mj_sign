@@ -37,6 +37,11 @@ public class RoutingInferenceGateway implements InferenceGateway {
 
     @Override
     public TranslationResult sendForInference(ClientStreamChunk chunk) {
+        return sendForInference(chunk, InferenceContext.defaults());
+    }
+
+    @Override
+    public TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
         InferenceGateway delegate = gateways.get(selectedProvider());
         if (delegate == null) {
             return TranslationResult.newBuilder()
@@ -46,7 +51,7 @@ public class RoutingInferenceGateway implements InferenceGateway {
                     .setConfidence(0.0f)
                     .build();
         }
-        return delegate.sendForInference(chunk);
+        return delegate.sendForInference(chunk, context);
     }
 
     InferenceProvider selectedProvider() {

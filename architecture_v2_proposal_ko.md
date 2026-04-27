@@ -2,6 +2,8 @@
 
 이 문서는 현재 저장소의 V2 구현 방향을 반영합니다. 프로젝트는 더 이상 순수 로컬 FFI 개념에 머무르지 않고, 비동기 버퍼링, provider 라우팅, queue 워커 계약, 운영 가시성을 갖춘 클라우드 브릿지 모델로 이동했습니다.
 
+API/SPI 경계는 `API_SPI_REFERENCE.md`, BE-model envelope는 `MODEL_PROTOCOL.md`, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 `LANGUAGE_MODEL_GUIDE.md`를 기준으로 합니다.
+
 ## 1. 현재 시스템 형태
 
 ```mermaid
@@ -71,6 +73,10 @@ Queue 경로는 명시적인 계약 객체들로 모델링되어 있습니다.
   - `frame_count`
   - `transport`
   - `client_schema_version`
+  - `protocol_version`
+  - `locale`
+  - `sign_language`
+  - `model_profile`
 - `GpuInferenceResponse`
   - `session_id`
   - `text`
@@ -79,6 +85,10 @@ Queue 경로는 명시적인 계약 객체들로 모델링되어 있습니다.
   - `processing_time_ms`
   - `model_version`
   - `error`
+  - `protocol_version`
+  - `locale`
+  - `sign_language`
+  - `model_profile`
 
 ## 4. 운영 표면
 
@@ -105,6 +115,15 @@ Queue 경로는 명시적인 계약 객체들로 모델링되어 있습니다.
 ## 5. 설정 모델
 
 브릿지는 `sign.gpu.*` 설정으로 서빙 경로를 선택하고 구성합니다.
+
+언어/모델 라우팅은 `sign.language.*` 설정으로 선택합니다.
+
+- `sign.language.default-locale`
+- `sign.language.default-sign-language`
+- `sign.language.default-model-profile`
+- `sign.language.protocol-version`
+- `sign.language.sign-language-by-locale-language`
+- `sign.language.model-profile-by-sign-language`
 
 - `sign.gpu.provider=http|grpc|queue`
 - `sign.gpu.base-url`
@@ -162,6 +181,7 @@ Queue 경로는 명시적인 계약 객체들로 모델링되어 있습니다.
 - `HttpGpuServingClient` 또는 향후 gRPC client를 실제 Sign-Gemma 서빙 계층에 연결
 - model versioning과 backend 실패 분류 체계 정의
 - auth, rate limiting, tracing 추가
+- 신규 언어 모델은 `LANGUAGE_MODEL_GUIDE.md`의 Sign Gemma-compatible model spec을 기준으로 profile metadata, health endpoint, inference response, confidence calibration을 맞춤
 
 ## 7. 요약
 

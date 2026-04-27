@@ -70,6 +70,15 @@ public class AsyncInferenceService {
             ClientStreamChunk chunk,
             Consumer<TranslationResult> onComplete
     ) {
+        return dispatch(sessionId, chunk, InferenceContext.defaults(), onComplete);
+    }
+
+    public boolean dispatch(
+            String sessionId,
+            ClientStreamChunk chunk,
+            InferenceContext context,
+            Consumer<TranslationResult> onComplete
+    ) {
         if (!sessionsInFlight.add(sessionId)) {
             metricsService.incrementDispatchRejected();
             return false;
@@ -79,8 +88,8 @@ public class AsyncInferenceService {
         metricsService.incrementInFlightInferences();
 
         CompletableFuture
-                .supplyAsync(() -> inferenceGateway.sendForInference(chunk), inferenceExecutor)
-                .thenApply(this::refineWithLlm) // Add LLM refinement step
+                .supplyAsync(() -> inferenceGateway.sendForInference(chunk, context), inferenceExecutor)
+                .thenApply(result -> refineWithLlm(result, context))
                 .exceptionally(error -> TranslationResult.newBuilder()
                         .setSessionId(sessionId)
                         .setText("Async inference failed: " + error.getMessage())
@@ -101,14 +110,18 @@ public class AsyncInferenceService {
     /**
      * GPU 인식 결과(키워드)를 LLM을 통해 자연스러운 문장으로 변환합니다.
      */
-    private TranslationResult refineWithLlm(TranslationResult rawResult) {
+    private TranslationResult refineWithLlm(TranslationResult rawResult, InferenceContext context) {
         if (!shouldRefine(rawResult)) {
             return rawResult;
         }
 
         List<String> keywords = Arrays.asList(rawResult.getText().split("\\s+"));
         try {
-            String refinedText = translationService.translateKeywords(keywords);
+            String refinedText = translationService.translateKeywords(
+                    keywords,
+                    context.locale(),
+                    context.sign_language()
+            );
             if (refinedText == null || refinedText.isBlank()) {
                 return rawResult;
             }

@@ -7,4 +7,8 @@ public interface InferenceGateway {
     InferenceProvider provider();
 
     TranslationResult sendForInference(ClientStreamChunk chunk);
+
+    default TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
+        return sendForInference(chunk);
+    }
 }

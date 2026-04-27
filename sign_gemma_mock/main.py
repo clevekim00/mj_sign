@@ -2,7 +2,8 @@ import os
 import base64
 import random
 import asyncio
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from logger_config import logger # Assuming a logger setup
 
@@ -13,48 +14,91 @@ except ImportError:
     import landmark_pb2 # Fallback if path differs
 from schema.landmark_pb2 import ClientStreamChunk
 from logger_config import logger
-from sign_gemma_model import engine
+from profile_registry import profile_registry
+from sign_gemma_model import engine_registry
 
 app = FastAPI(title="Sign-Gemma Inference Server")
 # Configuration
-MODEL_VERSION = os.getenv("MODEL_VERSION", "sign-gemma-v2-production-ready")
 USE_REAL_MODEL = os.getenv("USE_REAL_MODEL", "false").lower() == "true"
+PRELOAD_PROFILES = [
+    profile.strip()
+    for profile in os.getenv("SIGN_GEMMA_PRELOAD_PROFILES", "").split(",")
+    if profile.strip()
+]
 
 class InferenceRequest(BaseModel):
     session_id: str
     protobuf_b64: str
-
-# Mock dictionary for translating random session data
-mock_sentences = [
-    "나 밥 먹다",
-    "너 학교 가다",
-    "그 수어 무엇 입니까",
-    "오늘 날씨 좋다",
-    "만나다 반갑다"
-]
+    frame_count: int | None = None
+    transport: str | None = None
+    client_schema_version: str | None = None
+    protocol_version: str = "mj-sign-model-v1"
+    locale: str = "ko-KR"
+    sign_language: str = "ksl"
+    model_profile: str = "sign-gemma-ko"
 
 @app.on_event("startup")
 async def startup_event():
     if USE_REAL_MODEL:
-        logger.info(f"Loading real Sign-Gemma model: {MODEL_VERSION}...")
-        # TODO: model = load_sign_gemma_model()
+        profiles = PRELOAD_PROFILES or [profile_registry.default_profile]
+        logger.info("Starting in REAL mode. Preloading profiles: %s", profiles)
+        for profile_name in profiles:
+            profile = profile_registry.get(profile_name)
+            engine_registry.load_profile(profile)
     else:
-        logger.info(f"Starting in MOCK mode. Model version: {MODEL_VERSION}")
+        logger.info(
+            "Starting in MOCK mode. Available profiles: %s",
+            [profile.model_profile for profile in profile_registry.all()],
+        )
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "model_version": MODEL_VERSION, "mode": "real" if USE_REAL_MODEL else "mock"}
+    return {
+        "status": "ok",
+        "mode": "real" if USE_REAL_MODEL else "mock",
+        "default_profile": profile_registry.default_profile,
+        "loaded_profiles": engine_registry.loaded_profiles(),
+        "profiles": [
+            profile.metadata(loaded=engine_registry.is_loaded(profile.model_profile))
+            for profile in profile_registry.all()
+        ],
+    }
+
+@app.get("/ready")
+def readiness_check():
+    default_profile = profile_registry.get(profile_registry.default_profile)
+    loaded = engine_registry.is_loaded(default_profile.model_profile)
+    ready = not USE_REAL_MODEL or loaded
+    body = {
+        "status": "ready" if ready else "not_ready",
+        "mode": "real" if USE_REAL_MODEL else "mock",
+        "default_profile": default_profile.model_profile,
+        "loaded_profiles": engine_registry.loaded_profiles(),
+        "profiles": [
+            profile.metadata(loaded=engine_registry.is_loaded(profile.model_profile))
+            for profile in profile_registry.all()
+        ],
+    }
+    return JSONResponse(status_code=200 if ready else 503, content=body)
 
 @app.post("/api/v2/recognize")
 async def recognize_sign(req: InferenceRequest):
     try:
+        profile = profile_registry.resolve(req.model_profile, req.locale, req.sign_language)
         # Decode the base64 protobuf string
         decoded_bytes = base64.b64decode(req.protobuf_b64)
         chunk = landmark_pb2.ClientStreamChunk()
         chunk.ParseFromString(decoded_bytes)
         
         frame_count = len(chunk.frames)
-        logger.info(f"Processing session {req.session_id} with {frame_count} frames")
+        logger.info(
+            "Processing session %s with %s frames locale=%s sign_language=%s model_profile=%s",
+            req.session_id,
+            frame_count,
+            req.locale,
+            req.sign_language,
+            profile.model_profile,
+        )
 
         if frame_count == 0:
             raise HTTPException(status_code=400, detail="No frames provided")
@@ -64,30 +108,41 @@ async def recognize_sign(req: InferenceRequest):
         await asyncio.sleep(delay)
 
         if USE_REAL_MODEL:
-            # In a real scenario, you'd convert landmarks to a prompt for the model
-            # For the notebook-based Gemma, we'll construct a prompt describing the action
-            # or use it as a refinement step if the mock logic already provides keywords.
-            mock_keyword = "너 학교 가다" # Example mock recognition
-            prompt = f"Translate the following ASL sign keywords to natural Korean: {mock_keyword}"
+            # Landmark-to-keyword decoding is model-specific. Until a trained
+            # visual SignGemma checkpoint is attached, the profile supplies a
+            # keyword hint so the serving contract and profile routing can be
+            # verified end to end.
+            prompt = profile.prompt_for_keywords(profile.keyword_hint())
             
-            result_text = engine.generate(prompt)
-            logger.info(f"SignGemma 추론 결과: {result_text}")
+            result_text = engine_registry.generate(profile, prompt)
+            logger.info("SignGemma profile %s inference result: %s", profile.model_profile, result_text)
             
             return {
                 "session_id": chunk.session_id,
                 "text": result_text,
                 "is_final": True,
-                "confidence": 0.95
+                "confidence": 0.95,
+                "processing_time_ms": int(delay * 1000),
+                "model_version": profile.model_version,
+                "protocol_version": req.protocol_version or profile.protocol_version,
+                "locale": req.locale or profile.locale,
+                "sign_language": req.sign_language or profile.sign_language,
+                "model_profile": profile.model_profile,
             }
         
         # Mock Response Mode
+        sentences = profile.mock_sentences or ("No mock sentence configured.",)
         return {
             "session_id": req.session_id,
-            "text": random.choice(mock_sentences),
+            "text": random.choice(sentences),
             "is_final": True,
             "confidence": round(random.uniform(0.85, 0.99), 2),
             "processing_time_ms": int(delay * 1000),
-            "model_version": MODEL_VERSION,
+            "model_version": profile.model_version,
+            "protocol_version": req.protocol_version or profile.protocol_version,
+            "locale": req.locale or profile.locale,
+            "sign_language": req.sign_language or profile.sign_language,
+            "model_profile": profile.model_profile,
         }
 
     except Exception as e:

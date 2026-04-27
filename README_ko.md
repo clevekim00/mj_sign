@@ -6,6 +6,11 @@
 - Spring Boot 브릿지: `sign_bridge/`
 - Python mock GPU 서버: `sign_gemma_mock/`
 - 공용 protobuf 스키마: `schema/`
+- 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md)
+- API / SPI Reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
+- BE-Model 표준 프로토콜: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
+- 언어별 모델 추가 가이드: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
+- SignGemma 조사 노트: [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md) / [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)
 
 ## 현재 아키텍처
 
@@ -41,6 +46,7 @@ graph TD
 - 세션별 in-flight 보호가 있는 비동기 추론 디스패치
 - `http`, `grpc`, `queue` provider 라우팅
 - `GpuInferenceRequest`, `GpuInferenceResponse` 기반 HTTP 서빙 계약
+- `InferenceContext` 기반 `locale`, `sign_language`, `model_profile` 표준화
 - `QueueInferenceTask`, `QueueInferenceResult`, `QueueInferenceTransport`, `QueueWorkerBackend`, broker 스타일 transport skeleton 기반 queue 워커 계약
 - 운영용 endpoint
   - `GET /internal/healthz`
@@ -66,7 +72,7 @@ graph TD
 ## 디렉터리 구조
 
 - `slr_input_kit/`
-  Flutter 공개 API, 데모 위젯, protobuf 모델, Sign Bridge 클라이언트
+  Flutter 공개 API, 데모 위젯, protobuf 모델, Sign Bridge 클라이언트, 플랫폼별 샘플 갤러리
 - `sign_bridge/`
   Spring Boot WebSocket 브릿지 (Kotlin/build.gradle.kts), 버퍼링 로직, 비동기 디스패치, 서버 라우팅, 큐 워커 계약 및 **Gemma 2 LLM 번역 레이어**.
 - `sign_gemma_mock/`
@@ -76,7 +82,7 @@ graph TD
 
 ## 주요 설정
 
-주요 백엔드 설정은 `sign_bridge/src/main/resources/application.properties` 에 있습니다.
+주요 백엔드 설정은 `sign_bridge/src/main/resources/application.yml` 에 있습니다.
 
 - `sign.gpu.provider`
 - `sign.gpu.base-url`
@@ -116,6 +122,37 @@ cd sign_bridge
 ```bash
 dart analyze slr_input_kit
 ```
+
+4. 플랫폼 샘플 앱 실행
+
+```bash
+cd slr_input_kit/example
+flutter run
+```
+
+샘플 앱은 Android, iOS, iPad, Web, Windows, macOS/OSX, Linux profile을 제공하며, 실제 카메라 extractor 없이도 bridge와 protobuf streaming 흐름을 확인할 수 있는 `DemoLandmarkFrameSource`를 사용합니다.
+
+## 플랫폼별 샘플
+
+| Platform | Sample profile | 실행 명령 |
+| --- | --- | --- |
+| Android | `slr_input_kit/example/lib/samples/android_sample.dart` | `flutter run -d android` |
+| iOS | `slr_input_kit/example/lib/samples/ios_sample.dart` | `flutter run -d ios` |
+| iPad | `slr_input_kit/example/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
+| Web | `slr_input_kit/example/lib/samples/web_sample.dart` | `flutter run -d chrome` |
+| Windows | `slr_input_kit/example/lib/samples/windows_sample.dart` | `flutter run -d windows` |
+| macOS/OSX | `slr_input_kit/example/lib/samples/macos_sample.dart` | `flutter run -d macos` |
+| Linux | `slr_input_kit/example/lib/samples/linux_sample.dart` | `flutter run -d linux` |
+
+## 언어 및 수어 모델 라우팅
+
+Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼마다 active keyboard layout을 읽는 API가 다르기 때문에, 실제 키보드 언어를 앱에서 알 수 있는 경우 `SignLanguageContext`로 명시 override하면 됩니다.
+
+영어 locale은 BE에서 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+
+API/SPI 경계는 [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)에 정리되어 있고, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 관리합니다.
+
+SignGemma 공개 정보와 landmark 지원 범위는 [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)와 [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)에 별도로 정리했습니다.
 
 ## 로컬 브로커 실행 환경
 
@@ -173,6 +210,7 @@ docker compose -f docker-compose.rabbitmq.yml down
 브로커, mock GPU, Spring 브릿지를 한 번에 올리려면 아래 compose 파일을 사용하면 됩니다.
 
 ```bash
+docker compose -f docker-compose.stack.http.yml up -d
 docker compose -f docker-compose.stack.kafka.yml up -d
 docker compose -f docker-compose.stack.rabbitmq.yml up -d
 ```
@@ -193,6 +231,12 @@ RabbitMQ 검증:
 
 ```bash
 ./scripts/verify_rabbitmq_stack.sh
+```
+
+English/ASL `sign-gemma` profile 검증:
+
+```bash
+./scripts/verify_english_asl_profile.sh
 ```
 
 이 스크립트가 수행하는 일:

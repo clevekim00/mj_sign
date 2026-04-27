@@ -14,6 +14,9 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
@@ -27,11 +30,13 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
 
     private final ConcurrentHashMap<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> websocketToStreamSessionIds = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, InferenceContext> websocketToInferenceContexts = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final SessionBufferService sessionBufferService;
     private final AsyncInferenceService asyncInferenceService;
     private final IdleFlushScheduler idleFlushScheduler;
     private final BridgeMetricsService metricsService;
+    private final SignLanguageResolver signLanguageResolver;
 
     public SignWebSocketHandler(
             SessionBufferService sessionBufferService,
@@ -40,17 +45,39 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
             BridgeMetricsService metricsService,
             ObjectMapper objectMapper
     ) {
+        this(
+                sessionBufferService,
+                asyncInferenceService,
+                idleFlushScheduler,
+                metricsService,
+                objectMapper,
+                new SignLanguageResolver(new SignLanguageProperties())
+        );
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public SignWebSocketHandler(
+            SessionBufferService sessionBufferService,
+            AsyncInferenceService asyncInferenceService,
+            IdleFlushScheduler idleFlushScheduler,
+            BridgeMetricsService metricsService,
+            ObjectMapper objectMapper,
+            SignLanguageResolver signLanguageResolver
+    ) {
         this.sessionBufferService = sessionBufferService;
         this.asyncInferenceService = asyncInferenceService;
         this.idleFlushScheduler = idleFlushScheduler;
         this.metricsService = metricsService;
         this.objectMapper = objectMapper;
+        this.signLanguageResolver = signLanguageResolver;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("Client connected: {}", session.getId());
+        InferenceContext context = resolveInferenceContext(session.getUri());
+        log.info("Client connected: {} with inference context {}", session.getId(), context);
         activeSessions.put(session.getId(), session);
+        websocketToInferenceContexts.put(session.getId(), context);
         metricsService.incrementActiveWebSocketSessions();
     }
 
@@ -92,6 +119,7 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         activeSessions.remove(session.getId());
         metricsService.decrementActiveWebSocketSessions();
         String streamSessionId = websocketToStreamSessionIds.remove(session.getId());
+        websocketToInferenceContexts.remove(session.getId());
         if (streamSessionId != null) {
             sessionBufferService.clear(streamSessionId);
         }
@@ -99,6 +127,14 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
 
     private void sendRecognitionResult(WebSocketSession session, TranslationResult result) throws Exception {
         session.sendMessage(new TextMessage(toJson(resultEvent(result))));
+    }
+
+    private void sendRecognitionResult(
+            WebSocketSession session,
+            TranslationResult result,
+            InferenceContext context
+    ) throws Exception {
+        session.sendMessage(new TextMessage(toJson(resultEvent(result, context))));
     }
 
     private void sendStatus(WebSocketSession session, String sessionId, String status, String text) throws Exception {
@@ -110,12 +146,18 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
     }
 
     private void safeSendInferenceEvent(WebSocketSession session, TranslationResult result) {
+        safeSendInferenceEvent(session, result, null);
+    }
+
+    private void safeSendInferenceEvent(WebSocketSession session, TranslationResult result, InferenceContext context) {
         if (!session.isOpen()) {
             return;
         }
         try {
             if (isInferenceError(result)) {
                 sendError(session, result.getSessionId(), "inference-error", result.getText());
+            } else if (context != null) {
+                sendRecognitionResult(session, result, context);
             } else {
                 sendRecognitionResult(session, result);
             }
@@ -141,6 +183,15 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         event.put("text", result.getText());
         event.put("is_final", result.getIsFinal());
         event.put("confidence", result.getConfidence());
+        return event;
+    }
+
+    private Map<String, Object> resultEvent(TranslationResult result, InferenceContext context) {
+        Map<String, Object> event = resultEvent(result);
+        event.put("locale", context.locale());
+        event.put("sign_language", context.sign_language());
+        event.put("model_profile", context.model_profile());
+        event.put("protocol_version", context.protocol_version());
         return event;
     }
 
@@ -184,6 +235,40 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
                 || normalized.startsWith("no inference gateway registered");
     }
 
+    private InferenceContext resolveInferenceContext(URI uri) {
+        Map<String, String> params = parseQueryParams(uri);
+        return signLanguageResolver.resolve(
+                params.get("locale"),
+                params.get("sign_language"),
+                params.get("model_profile"),
+                params.get("protocol_version")
+        );
+    }
+
+    private Map<String, String> parseQueryParams(URI uri) {
+        Map<String, String> params = new LinkedHashMap<>();
+        if (uri == null || uri.getRawQuery() == null || uri.getRawQuery().isBlank()) {
+            return params;
+        }
+
+        for (String pair : uri.getRawQuery().split("&")) {
+            if (pair.isBlank()) {
+                continue;
+            }
+            String[] parts = pair.split("=", 2);
+            String key = decode(parts[0]);
+            String value = parts.length > 1 ? decode(parts[1]) : "";
+            if (!key.isBlank()) {
+                params.put(key, value);
+            }
+        }
+        return params;
+    }
+
+    private String decode(String value) {
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
     private void scheduleIdleFlush(WebSocketSession session, String streamSessionId, long scheduleToken) {
         idleFlushScheduler.schedule(
                 streamSessionId,
@@ -208,10 +293,15 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
     }
 
     private void dispatchBufferedChunk(WebSocketSession session, String streamSessionId, BufferedChunkResult buffered) {
+        InferenceContext context = websocketToInferenceContexts.getOrDefault(
+                session.getId(),
+                signLanguageResolver.defaults()
+        );
         boolean accepted = asyncInferenceService.dispatch(
                 streamSessionId,
                 buffered.chunk(),
-                result -> safeSendInferenceEvent(session, result)
+                context,
+                result -> safeSendInferenceEvent(session, result, context)
         );
         if (accepted) {
             if (!buffered.idleTimeoutTriggered()) {

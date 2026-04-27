@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  fixnum: ^1.1.1
 
   slr_input_kit:
     # When depending on this package from a real application you should use:

@@ -2,6 +2,8 @@
 
 This document reflects the current V2 implementation direction in this repository. The project has moved from a purely local FFI concept toward a cloud bridge model with async buffering, provider routing, queue-worker contracts, and operational visibility.
 
+The API/SPI boundary is documented in `API_SPI_REFERENCE.md`, the BE-model envelope is documented in `MODEL_PROTOCOL.md`, and new language model onboarding plus the Sign Gemma-compatible model spec are documented in `LANGUAGE_MODEL_GUIDE.md`.
+
 ## 1. Current System Shape
 
 ```mermaid
@@ -71,6 +73,10 @@ The active HTTP serving interface is standardized through:
   - `frame_count`
   - `transport`
   - `client_schema_version`
+  - `protocol_version`
+  - `locale`
+  - `sign_language`
+  - `model_profile`
 - `GpuInferenceResponse`
   - `session_id`
   - `text`
@@ -79,6 +85,10 @@ The active HTTP serving interface is standardized through:
   - `processing_time_ms`
   - `model_version`
   - `error`
+  - `protocol_version`
+  - `locale`
+  - `sign_language`
+  - `model_profile`
 
 ## 4. Operational Surface
 
@@ -105,6 +115,15 @@ Tracked metrics include:
 ## 5. Configuration Model
 
 The bridge uses `sign.gpu.*` properties to select and configure the serving path.
+
+Language and model routing use `sign.language.*` properties.
+
+- `sign.language.default-locale`
+- `sign.language.default-sign-language`
+- `sign.language.default-model-profile`
+- `sign.language.protocol-version`
+- `sign.language.sign-language-by-locale-language`
+- `sign.language.model-profile-by-sign-language`
 
 - `sign.gpu.provider=http|grpc|queue`
 - `sign.gpu.base-url`
@@ -162,6 +181,7 @@ The bridge uses `sign.gpu.*` properties to select and configure the serving path
 - Connect `HttpGpuServingClient` or a future gRPC client to a real Sign-Gemma serving layer
 - Define model versioning and backend failure taxonomy
 - Add auth, rate limiting, and tracing
+- Onboard new language models with the Sign Gemma-compatible model spec in `LANGUAGE_MODEL_GUIDE.md`, including profile metadata, health endpoint, inference response, and confidence calibration
 
 ## 7. Summary
 

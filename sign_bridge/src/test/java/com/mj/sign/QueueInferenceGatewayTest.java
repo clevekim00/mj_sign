@@ -24,6 +24,9 @@ class QueueInferenceGatewayTest {
                     public QueueInferenceResult submitAndAwait(QueueInferenceTask task, Duration timeout) {
                         assertEquals("sign.inference.requests", task.topic());
                         assertEquals(Duration.ofMillis(4500), timeout);
+                        assertEquals("en-US", task.request().locale());
+                        assertEquals("asl", task.request().sign_language());
+                        assertEquals("sign-gemma", task.request().model_profile());
                         return new QueueInferenceResult(
                                 task.requestId(),
                                 task.sessionId(),
@@ -36,7 +39,8 @@ class QueueInferenceGatewayTest {
         );
 
         TranslationResult result = gateway.sendForInference(
-                ClientStreamChunk.newBuilder().setSessionId("queue-session").build()
+                ClientStreamChunk.newBuilder().setSessionId("queue-session").build(),
+                new InferenceContext("en-US", "asl", "sign-gemma", "mj-sign-model-v1")
         );
 
         assertEquals("queue-session", result.getSessionId());

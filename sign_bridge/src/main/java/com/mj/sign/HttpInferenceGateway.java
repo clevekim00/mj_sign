@@ -28,20 +28,33 @@ public class HttpInferenceGateway implements InferenceGateway {
 
     @Override
     public TranslationResult sendForInference(ClientStreamChunk chunk) {
+        return sendForInference(chunk, InferenceContext.defaults());
+    }
+
+    @Override
+    public TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
         try {
-            return toTranslationResult(chunk.getSessionId(), gpuServingClient.infer(toRequest(chunk)));
+            return toTranslationResult(chunk.getSessionId(), gpuServingClient.infer(toRequest(chunk, context)));
         } catch (Exception error) {
             return errorResult(chunk.getSessionId(), "Failed to connect to GPU server.");
         }
     }
 
     GpuInferenceRequest toRequest(ClientStreamChunk chunk) {
+        return toRequest(chunk, InferenceContext.defaults());
+    }
+
+    GpuInferenceRequest toRequest(ClientStreamChunk chunk, InferenceContext context) {
         return new GpuInferenceRequest(
                 chunk.getSessionId(),
                 Base64.getEncoder().encodeToString(chunk.toByteArray()),
                 chunk.getFramesCount(),
                 "protobuf-b64",
-                CLIENT_SCHEMA_VERSION
+                CLIENT_SCHEMA_VERSION,
+                context.protocol_version(),
+                context.locale(),
+                context.sign_language(),
+                context.model_profile()
         );
     }
 

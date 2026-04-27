@@ -14,6 +14,7 @@ class SlrInputWidget extends StatefulWidget {
     required this.onSignRecognized,
     this.bridgeUrl = 'ws://127.0.0.1:8080/ws/sign',
     this.sessionId,
+    this.languageContext,
     this.landmarkFrameStream,
     this.landmarkFrameSource,
     this.disposeLandmarkFrameSource = false,
@@ -25,6 +26,7 @@ class SlrInputWidget extends StatefulWidget {
   final ValueChanged<String> onSignRecognized;
   final String bridgeUrl;
   final String? sessionId;
+  final SignLanguageContext? languageContext;
   final Stream<List<LandmarkFrame>>? landmarkFrameStream;
   final LandmarkFrameSource? landmarkFrameSource;
   final bool disposeLandmarkFrameSource;
@@ -53,9 +55,13 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     super.initState();
     _sessionId = widget.sessionId ?? _createSessionId();
     _statusText = widget.placeholder;
-    _client = SignGemmaClient(url: widget.bridgeUrl)
-      ..onConnectionState = _handleConnectionState
-      ..onEvent = _handleBridgeEvent;
+    _client =
+        SignGemmaClient(
+            url: widget.bridgeUrl,
+            languageContext: widget.languageContext,
+          )
+          ..onConnectionState = _handleConnectionState
+          ..onEvent = _handleBridgeEvent;
     unawaited(_connect());
   }
 

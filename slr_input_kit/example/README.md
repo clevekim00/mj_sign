@@ -1,16 +1,128 @@
-# slr_input_kit_example
+# MJ Sign Flutter Samples
 
-Demonstrates how to use the slr_input_kit plugin.
+This example app is a platform sample gallery for `slr_input_kit`. It shows how
+the same sign-language input widget can be prepared for Android, iPhone, iPad,
+Web, Windows, macOS/OSX, and Linux while keeping the backend contract identical.
 
-## Getting Started
+## What the Sample Demonstrates
 
-This project is a starting point for a Flutter application.
+- `SlrInputWidget` connected to the Spring Sign Bridge over WebSocket.
+- Platform-specific bridge URLs and execution commands.
+- A deterministic demo landmark source that exercises the protobuf streaming
+  contract without requiring a real camera extractor.
+- Production notes for replacing the demo source with camera or MediaPipe style
+  landmark extraction.
+- Responsive UI behavior for phone, tablet, desktop, and browser layouts.
 
-A few resources to get you started if this is your first Flutter project:
+## Start the Local Backend
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Run the mock GPU server and Spring bridge from the repository root:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd sign_gemma_mock
+python main.py
+```
+
+```bash
+cd sign_bridge
+./gradlew bootRun
+```
+
+For queue-backed local validation, use the integrated Kafka or RabbitMQ stacks
+documented in the root README.
+
+## Run by Platform
+
+Android emulator:
+
+```bash
+flutter run -d android
+```
+
+iPhone simulator:
+
+```bash
+flutter run -d ios
+```
+
+iPad device or simulator:
+
+```bash
+flutter run -d <ipad-device-id>
+```
+
+Web:
+
+```bash
+flutter run -d chrome
+```
+
+Windows:
+
+```bash
+flutter run -d windows
+```
+
+macOS / OSX:
+
+```bash
+flutter run -d macos
+```
+
+Linux:
+
+```bash
+flutter run -d linux
+```
+
+## Bridge URL Tips
+
+- Android emulator should use `ws://10.0.2.2:8080/ws/sign`.
+- iOS Simulator, desktop, and local Web can use `ws://127.0.0.1:8080/ws/sign`
+  or `ws://localhost:8080/ws/sign`.
+- Physical Android, iPhone, and iPad devices should use the host machine LAN IP.
+- Production deployments should use WSS and short-lived session identifiers.
+
+## Language Context
+
+`SignGemmaClient` derives a default `SignLanguageContext` from the Flutter
+platform locale and appends it to the WebSocket URL. English locales become
+`locale=en-US`, `sign_language=asl`, and `model_profile=sign-gemma` by default.
+
+The backend API/SPI and model protocol are documented in the repository root:
+
+- `API_SPI_REFERENCE.md`
+- `MODEL_PROTOCOL.md`
+- `LANGUAGE_MODEL_GUIDE.md`
+
+If your host app can read the active keyboard or input-method language, pass it
+explicitly:
+
+```dart
+SlrInputWidget(
+  languageContext: const SignLanguageContext(
+    locale: 'en-US',
+    signLanguage: 'asl',
+    modelProfile: 'sign-gemma',
+  ),
+  onSignRecognized: (text) {},
+)
+```
+
+## Replacing the Demo Landmark Source
+
+The gallery uses `DemoLandmarkFrameSource` so every platform can exercise the
+bridge immediately. For production, replace it with:
+
+```dart
+CameraLandmarkFrameSource(
+  extractor: (image, camera) async {
+    // Run your hand, pose, and face landmark model here.
+    // Return List<LandmarkFrame> that follows schema/landmark.proto.
+    return <LandmarkFrame>[];
+  },
+)
+```
+
+Keep frame batches small, throttle to a stable FPS, and let the bridge idle
+flush collect enough context before final inference.

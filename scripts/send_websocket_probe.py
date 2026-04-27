@@ -39,6 +39,8 @@ def websocket_connect(ws_url: str) -> socket.socket:
     host = parsed.hostname or "127.0.0.1"
     port = parsed.port or 80
     path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
     key = base64.b64encode(os.urandom(16)).decode("ascii")
 
     sock = socket.create_connection((host, port), timeout=10)
@@ -119,6 +121,13 @@ def main() -> int:
     parser.add_argument("--session-id", default=f"probe-{int(time.time())}")
     parser.add_argument("--frame-count", type=int, default=8)
     parser.add_argument("--timeout-seconds", type=float, default=15)
+    parser.add_argument(
+        "--expect-json-field",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Assert that the final JSON event contains KEY with VALUE.",
+    )
     args = parser.parse_args()
 
     sock = websocket_connect(args.url)
@@ -127,6 +136,7 @@ def main() -> int:
 
     deadline = time.time() + args.timeout_seconds
     saw_final = False
+    final_message = None
     while time.time() < deadline:
         opcode, payload = recv_frame(sock)
         if opcode is None:
@@ -140,12 +150,28 @@ def main() -> int:
                 continue
             if message.get("is_final") is True and message.get("text"):
                 saw_final = True
+                final_message = message
                 break
         elif opcode == 0x8:
             break
 
     sock.close()
-    return 0 if saw_final else 1
+    if not saw_final or final_message is None:
+        return 1
+
+    for expectation in args.expect_json_field:
+        if "=" not in expectation:
+            print(f"Invalid expectation: {expectation}", file=sys.stderr)
+            return 2
+        key, expected = expectation.split("=", 1)
+        actual = final_message.get(key)
+        if str(actual) != expected:
+            print(
+                f"Expectation failed: {key} expected {expected!r}, got {actual!r}",
+                file=sys.stderr,
+            )
+            return 3
+    return 0
 
 
 if __name__ == "__main__":

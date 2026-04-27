@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -11,6 +12,77 @@ typedef ConnectionStateHandler =
     void Function(SignGemmaConnectionState state, String? detail);
 
 enum SignGemmaConnectionState { disconnected, connecting, connected, error }
+
+class SignLanguageContext {
+  const SignLanguageContext({
+    required this.locale,
+    required this.signLanguage,
+    this.modelProfile,
+    this.protocolVersion = 'mj-sign-model-v1',
+  });
+
+  final String locale;
+  final String signLanguage;
+  final String? modelProfile;
+  final String protocolVersion;
+
+  factory SignLanguageContext.fromPlatformDispatcher() {
+    return SignLanguageContext.fromLocale(
+      ui.PlatformDispatcher.instance.locale,
+    );
+  }
+
+  factory SignLanguageContext.fromLocale(ui.Locale locale) {
+    final languageCode = locale.languageCode.toLowerCase();
+    final countryCode = locale.countryCode;
+    final localeTag = countryCode == null || countryCode.isEmpty
+        ? languageCode
+        : '$languageCode-$countryCode';
+    final signLanguage =
+        _signLanguageByLocaleLanguage[languageCode] ?? 'international-sign';
+    return SignLanguageContext(
+      locale: localeTag,
+      signLanguage: signLanguage,
+      modelProfile:
+          _modelProfileBySignLanguage[signLanguage] ??
+          'sign-gemma-$signLanguage',
+    );
+  }
+
+  Uri applyTo(Uri uri) {
+    final nextQuery = <String, String>{
+      ...uri.queryParameters,
+      'locale': locale,
+      'sign_language': signLanguage,
+      'protocol_version': protocolVersion,
+    };
+    final profile = modelProfile;
+    if (profile != null && profile.isNotEmpty) {
+      nextQuery['model_profile'] = profile;
+    }
+    return uri.replace(queryParameters: nextQuery);
+  }
+
+  static const Map<String, String> _signLanguageByLocaleLanguage = {
+    'ko': 'ksl',
+    'en': 'asl',
+    'ja': 'jsl',
+    'zh': 'csl',
+    'fr': 'lsf',
+    'de': 'dgs',
+    'es': 'lse',
+  };
+
+  static const Map<String, String> _modelProfileBySignLanguage = {
+    'ksl': 'sign-gemma-ko',
+    'asl': 'sign-gemma',
+    'jsl': 'sign-gemma-ja',
+    'csl': 'sign-gemma-zh',
+    'lsf': 'sign-gemma-fr',
+    'dgs': 'sign-gemma-de',
+    'lse': 'sign-gemma-es',
+  };
+}
 
 class SignGemmaBridgeEvent {
   const SignGemmaBridgeEvent({
@@ -71,9 +143,14 @@ class SignGemmaBridgeEvent {
 }
 
 class SignGemmaClient {
-  SignGemmaClient({this.url = 'ws://127.0.0.1:8080/ws/sign'});
+  SignGemmaClient({
+    this.url = 'ws://127.0.0.1:8080/ws/sign',
+    SignLanguageContext? languageContext,
+  }) : languageContext =
+           languageContext ?? SignLanguageContext.fromPlatformDispatcher();
 
   final String url;
+  final SignLanguageContext languageContext;
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
 
@@ -90,7 +167,9 @@ class SignGemmaClient {
 
     onConnectionState?.call(SignGemmaConnectionState.connecting, null);
 
-    final channel = WebSocketChannel.connect(Uri.parse(url));
+    final channel = WebSocketChannel.connect(
+      languageContext.applyTo(Uri.parse(url)),
+    );
     _subscription = channel.stream.listen(
       _handleMessage,
       onDone: () {

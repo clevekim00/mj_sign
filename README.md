@@ -1,93 +1,134 @@
 # MJ Sign
 
-Sign language recognition prototype focused on a cloud-oriented V2 pipeline:
+MJ Sign은 수어 입력을 앱과 웹 서비스에 붙일 수 있도록 만드는 크로스 플랫폼 수어 인식 프로토타입입니다. Flutter 입력 위젯이 손/포즈/얼굴 landmark frame을 WebSocket protobuf로 전송하고, Spring Boot Sign Bridge가 세션 버퍼링, idle timeout flush, GPU serving provider 라우팅, queue worker 흐름, LLM 문장 보정을 담당합니다.
 
-- Flutter client plugin in `slr_input_kit/`
-- Spring Boot bridge in `sign_bridge/`
-- Python mock GPU server in `sign_gemma_mock/`
-- Shared protobuf schema in `schema/`
-
-- [한국어 문서](./README_ko.md)
 - [English README](./README_en.md)
+- [한국어 상세 문서](./README_ko.md)
+- [프로젝트 홍보 문서 (KO)](./PROJECT_PROMOTION_KO.md)
+- [Project Promotion (EN)](./PROJECT_PROMOTION_EN.md)
+- [API / SPI Reference](./API_SPI_REFERENCE.md)
+- [BE-Model 표준 프로토콜](./MODEL_PROTOCOL.md)
+- [언어별 모델 추가 가이드](./LANGUAGE_MODEL_GUIDE.md)
+- [SignGemma 조사 노트 (KO)](./SIGN_GEMMA_RESEARCH_KO.md)
+- [SignGemma Research Notes (EN)](./SIGN_GEMMA_RESEARCH.md)
 - [LLM Integration Prompt](./PROMPT_LLM_INTEGRATION.md)
+- [개선 계획 및 리뷰](./REVIEW_AND_ENHANCEMENT_PLAN.md)
 
-## Current Architecture
+## 왜 MJ Sign인가
+
+- 수어 입력을 일반 텍스트 필드처럼 붙일 수 있는 `SlrInputWidget` 중심 구조입니다.
+- Android, iOS, iPad, Web, Windows, macOS/OSX, Linux 샘플 흐름을 한 예제 앱에서 비교할 수 있습니다.
+- 실제 GPU serving 전까지 `sign_gemma_mock`으로 WebSocket, queue, serializer/converter, metrics 경로를 검증할 수 있습니다.
+- `http`, `grpc`, `queue` provider 분기와 Kafka/RabbitMQ transport 골격이 있어 운영 구조로 확장하기 쉽습니다.
+- Gemma 2 기반 LLM 보정 레이어로 원시 수어 키워드를 자연스러운 한국어 문장으로 다듬는 방향을 포함합니다.
+
+## 현재 아키텍처
 
 ```mermaid
 graph TD
-    A["Flutter client / slr_input_kit"] -->|"protobuf landmark frames over WebSocket"| B["Spring Boot bridge / sign_bridge"]
+    A["Flutter app / slr_input_kit"] -->|"protobuf landmark frames over WebSocket"| B["Spring Boot Sign Bridge"]
     B --> C["Session buffer + idle timeout flush"]
     C --> D["Async inference dispatcher"]
     D --> E{"Inference provider"}
     E -->|"http"| F["HTTP GPU serving client"]
     E -->|"grpc"| G["gRPC extension point"]
-    E -->|"queue"| H["Queue worker contract"]
-    F --> I["GPU server / sign_gemma_mock or real serving backend"]
-    H --> I
-    B --> J["LLM Refinement Layer / Gemma 2 via Ollama"]
-    J --> K["Natural Language Output"]
+    E -->|"queue"| H["Queue inference gateway"]
+    H --> I{"Queue transport"}
+    I -->|"in-memory"| J["Local worker"]
+    I -->|"kafka"| K["Kafka worker consumer"]
+    I -->|"rabbitmq"| L["RabbitMQ worker consumer"]
+    F --> M["Mock GPU or real serving backend"]
+    J --> M
+    K --> M
+    L --> M
+    B --> N["LLM refinement / Gemma 2 via Ollama"]
+    N --> O["Natural language output"]
 ```
 
-## LLM-Powered Translation (V2 Extension)
+## 저장소 구성
 
-The project now includes an LLM-based refinement layer that transforms raw sign language keywords (e.g., "I", "rice", "eat") into natural, grammatically correct sentences using **Gemma 2**.
+- `slr_input_kit/`: Flutter 수어 입력 패키지, Sign Bridge client, protobuf model, 플랫폼별 샘플 앱
+- `sign_bridge/`: Spring Boot WebSocket bridge, provider routing, async buffer, queue worker, health/readiness/metrics, LLM translation API
+- `sign_gemma_mock/`: FastAPI 기반 mock GPU serving backend
+- `schema/`: Flutter, Java, Python이 공유하는 protobuf schema
+- `scripts/`: Kafka/RabbitMQ 통합 스택 검증 스크립트
 
-- **Kotlin Migration**: The `sign_bridge` module has been modernized to Kotlin and uses `build.gradle.kts`.
-- **Spring AI**: Integrated via the Spring AI Ollama starter.
-- **Prompt Engineering**: Includes specialized system prompts for sign-to-sentence translation.
-- **REST API**: New endpoint `POST /api/v2/translate` for keyword refinement.
+## 구현된 주요 기능
 
-## Implemented Backend Capabilities
+- `/ws/sign` WebSocket binary protobuf landmark intake
+- 세션 단위 buffering, frame window aggregation, idle timeout 자동 flush
+- 세션별 in-flight 보호가 있는 async inference dispatch
+- `sign.gpu.provider=http|grpc|queue` 기반 provider routing
+- HTTP GPU serving contract: `GpuInferenceRequest`, `GpuInferenceResponse`
+- 언어 독립 BE SPI: `InferenceContext` 기반 `locale`, `sign_language`, `model_profile` 표준화
+- Queue worker contract: `QueueInferenceTask`, `QueueInferenceResult`, `QueueInferenceTransport`, `QueueWorkerBackend`
+- Kafka/RabbitMQ serializer, converter, worker consumer, result publication path
+- 운영 endpoint: `GET /internal/healthz`, `GET /internal/readyz`, `GET /internal/metrics`
+- Gemma 2/Ollama 기반 `POST /api/v2/translate` LLM 문장 보정
 
-- Binary protobuf intake over WebSocket at `/ws/sign`
-- Session-aware buffering and frame window aggregation
-- Idle timeout based auto flush
-- Async inference dispatch with per-session in-flight protection
-- Provider routing for `http`, `grpc`, and `queue`
-- HTTP serving contract via `GpuInferenceRequest` and `GpuInferenceResponse`
-- Queue worker contract via `QueueInferenceTask`, `QueueInferenceResult`, `QueueInferenceTransport`, `QueueWorkerBackend`, and broker-style transport skeletons
-- Operational endpoints:
-  - `GET /internal/healthz`
-  - `GET /internal/readyz`
-  - `GET /internal/metrics`
+## 빠른 시작
 
-## Provider Model
+Mock GPU 서버:
 
-The bridge selects its inference transport using `sign.gpu.provider`.
+```bash
+cd sign_gemma_mock
+python main.py
+```
 
-- `http`: active implementation through `HttpInferenceGateway`
-- `grpc`: extension stub through `GrpcInferenceGateway`
-- `queue`: queue-backed worker contract through `QueueInferenceGateway`
+Spring bridge:
 
-The queue provider now has a second-level transport router:
+```bash
+cd sign_bridge
+./gradlew bootRun
+```
 
-- `in-memory`: executable local transport
-- `kafka`: broker-style skeleton
-- `rabbitmq`: broker-style skeleton
+Flutter 샘플 앱:
 
-The worker contract remains executable today through the in-memory transport and an HTTP-backed worker backend, while the Kafka and RabbitMQ transports define the integration seams for real broker clients.
+```bash
+cd slr_input_kit/example
+flutter run
+```
 
-## Repository Layout
+샘플 앱은 기본적으로 deterministic demo landmark source를 사용합니다. 실제 카메라 landmark extractor가 없어도 bridge 연결, protobuf streaming, 최종 결과 이벤트 흐름을 바로 확인할 수 있습니다.
 
-- `slr_input_kit/`
-  Flutter package with the public client API, demo widget, protobuf models, and Sign Bridge client.
-- `sign_bridge/`
-  Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
-- `sign_gemma_mock/`
-  FastAPI mock serving backend that follows the current HTTP inference contract.
-- `schema/`
-  Shared protobuf schema used by Flutter, Java, and Python.
+## 플랫폼별 샘플
 
-## Key Configuration
+플랫폼 샘플은 [slr_input_kit/example/lib/samples](./slr_input_kit/example/lib/samples)에 분리되어 있고, [slr_input_kit/example/lib/main.dart](./slr_input_kit/example/lib/main.dart)에서 갤러리 형태로 실행됩니다.
 
-Main backend settings live in `sign_bridge/src/main/resources/application.properties`.
+| Platform | Sample profile | Run command | 기본 bridge URL |
+| --- | --- | --- | --- |
+| Android | `android_sample.dart` | `flutter run -d android` | `ws://10.0.2.2:8080/ws/sign` |
+| iOS | `ios_sample.dart` | `flutter run -d ios` | `ws://127.0.0.1:8080/ws/sign` |
+| iPad | `ipad_sample.dart` | `flutter run -d <ipad-device-id>` | `ws://127.0.0.1:8080/ws/sign` |
+| Web | `web_sample.dart` | `flutter run -d chrome` | `ws://localhost:8080/ws/sign` |
+| Windows | `windows_sample.dart` | `flutter run -d windows` | `ws://127.0.0.1:8080/ws/sign` |
+| macOS/OSX | `macos_sample.dart` | `flutter run -d macos` | `ws://127.0.0.1:8080/ws/sign` |
+| Linux | `linux_sample.dart` | `flutter run -d linux` | `ws://127.0.0.1:8080/ws/sign` |
+
+실제 제품에서는 `DemoLandmarkFrameSource`를 `CameraLandmarkFrameSource` 또는 MediaPipe/ML Kit/온디바이스 모델 기반 extractor로 교체하면 됩니다.
+
+## 언어 및 수어 모델 라우팅
+
+Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼별 active keyboard layout은 Flutter에서 일관되게 노출되지 않으므로, 앱에서 키보드 언어를 알 수 있는 경우 `SignLanguageContext`로 명시 override할 수 있습니다.
+
+영어 locale은 BE에서 기본적으로 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [MODEL_PROTOCOL.md](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+
+API/SPI 경계는 [API_SPI_REFERENCE.md](./API_SPI_REFERENCE.md)에 정리되어 있고, 새 언어 모델을 추가하는 절차와 Sign Gemma 호환 model spec은 [LANGUAGE_MODEL_GUIDE.md](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 따르면 됩니다.
+
+SignGemma 공개 정보와 landmark 지원 범위는 [SIGN_GEMMA_RESEARCH_KO.md](./SIGN_GEMMA_RESEARCH_KO.md)와 [SIGN_GEMMA_RESEARCH.md](./SIGN_GEMMA_RESEARCH.md)에 따로 정리했습니다.
+
+## Provider 설정
+
+주요 설정은 [sign_bridge/src/main/resources/application.yml](./sign_bridge/src/main/resources/application.yml)에 있습니다.
 
 - `sign.gpu.provider`
+- `sign.language.default-locale`
+- `sign.language.sign-language-by-locale-language`
+- `sign.language.model-profile-by-sign-language`
 - `sign.gpu.base-url`
 - `sign.gpu.infer-path`
 - `sign.gpu.health-path`
 - `sign.gpu.grpc-target`
-- `sign.gpu.queue-topic`
 - `sign.gpu.queue-transport`
 - `sign.gpu.queue-request-topic`
 - `sign.gpu.queue-result-topic`
@@ -99,155 +140,73 @@ Main backend settings live in `sign_bridge/src/main/resources/application.proper
 - `sign.window.idle-timeout-ms`
 - `sign.async.core-pool-size`
 
-## Local Development
-
-1. Start the mock GPU server:
-
-```bash
-cd sign_gemma_mock
-python main.py
-```
-
-2. Start the Spring bridge:
-
-```bash
-cd sign_bridge
-./gradlew bootRun
-```
-
-3. Analyze or run the Flutter package:
-
-```bash
-dart analyze slr_input_kit
-```
-
-## Local Broker Environments
-
-### Kafka
-
-Start Kafka:
-
-```bash
-docker compose -f docker-compose.kafka.yml up -d
-```
-
-Run the bridge with the Kafka profile:
-
-```bash
-cd sign_bridge
-./gradlew bootRun --args='--spring.profiles.active=kafka'
-```
-
-This activates:
-
-- `sign.gpu.provider=queue`
-- `sign.gpu.queue-transport=kafka`
-- `sign.gpu.queue-broker-mode=spring`
-
-### RabbitMQ
-
-Start RabbitMQ:
-
-```bash
-docker compose -f docker-compose.rabbitmq.yml up -d
-```
-
-Run the bridge with the RabbitMQ profile:
-
-```bash
-cd sign_bridge
-./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
-```
-
-This activates:
-
-- `sign.gpu.provider=queue`
-- `sign.gpu.queue-transport=rabbitmq`
-- `sign.gpu.queue-broker-mode=spring`
-
-### Shutdown
-
-```bash
-docker compose -f docker-compose.kafka.yml down
-docker compose -f docker-compose.rabbitmq.yml down
-```
-
-## Integrated Local Stacks
-
-Use these when you want the broker, mock GPU, and Spring bridge to come up together:
-
-```bash
-docker compose -f docker-compose.stack.kafka.yml up -d
-docker compose -f docker-compose.stack.rabbitmq.yml up -d
-```
-
-The integrated bridge containers override broker host settings so the queue provider can talk to `kafka:9092` or `rabbitmq:5672` inside Docker, while the mock GPU stays reachable at `http://mock-gpu:8000`.
-
-## End-to-End Queue Verification
-
-The repository now includes executable verification scripts that validate the real local queue worker flow, including serializer or converter wiring, worker consumption, reply production, and the WebSocket-to-queue-to-GPU round trip.
+## Broker 로컬 실행
 
 Kafka:
 
 ```bash
-./scripts/verify_kafka_stack.sh
+docker compose -f docker-compose.kafka.yml up -d
+cd sign_bridge
+./gradlew bootRun --args='--spring.profiles.active=kafka'
 ```
 
 RabbitMQ:
 
 ```bash
+docker compose -f docker-compose.rabbitmq.yml up -d
+cd sign_bridge
+./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
+```
+
+Mock GPU와 bridge까지 포함한 통합 스택:
+
+```bash
+docker compose -f docker-compose.stack.http.yml up -d
+docker compose -f docker-compose.stack.kafka.yml up -d
+docker compose -f docker-compose.stack.rabbitmq.yml up -d
+```
+
+## 통합 검증
+
+Kafka queue flow:
+
+```bash
+./scripts/verify_kafka_stack.sh
+```
+
+RabbitMQ queue flow:
+
+```bash
 ./scripts/verify_rabbitmq_stack.sh
 ```
 
-What these scripts do:
+English/ASL `sign-gemma` profile flow:
 
-- start the integrated Docker stack
-- wait for `/internal/healthz` and `/internal/readyz`
-- send a binary protobuf WebSocket payload to `/ws/sign`
-- verify that a final inference response comes back through the queue-backed worker flow
-- assert that metrics report at least one completed inference
+```bash
+./scripts/verify_english_asl_profile.sh
+```
 
-Set `KEEP_STACK=1` if you want the stack left running after verification.
-
-## DLQ and Retry Samples
-
-Broker-specific retry and dead-letter policy examples are provided here:
-
-- `sign_bridge/src/main/resources/application-kafka-dlq.properties`
-- `sign_bridge/src/main/resources/application-rabbitmq-dlq.properties`
-
-These files are sample baselines for:
-
-- retry topic or queue naming
-- DLQ naming
-- max attempt and backoff values
-- listener defaults that are usually paired with broker-side retry handling
-
-They are intentionally documented as samples, not production-final values.
-
-## Verification
-
-Backend verification currently runs with:
+백엔드 단위 테스트:
 
 ```bash
 cd sign_bridge
 ./gradlew test
 ```
 
-## LLM Feature Verification
-
-Test the translation endpoint:
+Flutter 패키지 분석:
 
 ```bash
-curl -X POST http://localhost:8080/api/v2/translate \
-     -H "Content-Type: application/json" \
-     -d '{"keywords": ["나", "밥", "먹다"]}'
+dart analyze slr_input_kit
 ```
 
-Requires a local Ollama server running Gemma 2.
+## 운영 준비 체크포인트
 
-For full local integration coverage with real broker containers, run the queue verification scripts above.
+- 실제 GPU serving backend의 `/healthz`, `/infer` contract를 mock과 동일하게 맞춥니다.
+- WebSocket은 운영에서 WSS로 노출하고 session ID 수명과 인증 정책을 정합니다.
+- Kafka/RabbitMQ profile에는 DLQ, retry, backoff, consumer group 정책을 환경별로 튜닝합니다.
+- `/internal/metrics`를 Prometheus 또는 운영 대시보드로 연결합니다.
+- LLM 보정은 final/high-confidence 결과에만 적용해 latency와 비용을 관리합니다.
 
-## Status
+## 현재 상태
 
-This repository is no longer accurately described as only a local FFI pipeline. The active implementation direction is a cloud bridge architecture with structured inference providers, async buffering, operational visibility, and a queue-ready worker contract.
+MJ Sign은 단순 로컬 FFI 실험이 아니라, 크로스 플랫폼 수어 입력 UI와 클라우드/edge GPU serving bridge를 연결하는 구조로 발전했습니다. 다음 단계는 실제 landmark extractor와 실제 GPU 모델 serving을 붙여 demo landmark source를 제품 수준 입력 파이프라인으로 교체하는 것입니다.

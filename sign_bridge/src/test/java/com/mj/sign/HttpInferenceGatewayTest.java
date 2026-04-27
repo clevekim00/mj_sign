@@ -46,6 +46,28 @@ class HttpInferenceGatewayTest {
         assertEquals("session-2", request.session_id());
         assertEquals("protobuf-b64", request.transport());
         assertEquals("v1", request.client_schema_version());
+        assertEquals("ko-KR", request.locale());
+        assertEquals("ksl", request.sign_language());
+        assertEquals("sign-gemma-ko", request.model_profile());
+        assertEquals("mj-sign-model-v1", request.protocol_version());
+    }
+
+    @Test
+    void addsLanguageContextToServingRequestEnvelope() {
+        HttpInferenceGateway gateway = new HttpInferenceGateway(
+                request -> new GpuInferenceResponse(request.session_id(), "", true, 0, 0, null, null),
+                properties()
+        );
+        ClientStreamChunk chunk = ClientStreamChunk.newBuilder().setSessionId("session-en").build();
+
+        GpuInferenceRequest request = gateway.toRequest(
+                chunk,
+                new InferenceContext("en-US", "asl", "sign-gemma", "mj-sign-model-v1")
+        );
+
+        assertEquals("en-US", request.locale());
+        assertEquals("asl", request.sign_language());
+        assertEquals("sign-gemma", request.model_profile());
     }
 
     @Test

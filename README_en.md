@@ -6,6 +6,11 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 - Spring Boot bridge: `sign_bridge/`
 - Python mock GPU server: `sign_gemma_mock/`
 - Shared protobuf schema: `schema/`
+- Promotional overview: [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md)
+- API / SPI reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
+- BE-model standard protocol: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
+- Language model onboarding guide: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
+- SignGemma research notes: [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md) / [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)
 
 ## Current Architecture
 
@@ -41,6 +46,7 @@ The project now includes an LLM-based refinement layer that transforms raw sign 
 - Async dispatch with per-session in-flight protection
 - Provider routing for `http`, `grpc`, and `queue`
 - HTTP serving contract through `GpuInferenceRequest` and `GpuInferenceResponse`
+- Language-independent BE SPI through `InferenceContext` with standardized `locale`, `sign_language`, and `model_profile`
 - Queue worker contract through `QueueInferenceTask`, `QueueInferenceResult`, `QueueInferenceTransport`, `QueueWorkerBackend`, and broker-style transport skeletons
 - Operational endpoints
   - `GET /internal/healthz`
@@ -66,7 +72,7 @@ The contract remains executable today via the in-memory transport plus an HTTP-b
 ## Repository Structure
 
 - `slr_input_kit/`
-  Flutter public API, demo widget, protobuf models, and Sign Bridge client
+  Flutter public API, demo widget, protobuf models, Sign Bridge client, and platform sample gallery
 - `sign_bridge/`
   Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
 - `sign_gemma_mock/`
@@ -76,7 +82,7 @@ The contract remains executable today via the in-memory transport plus an HTTP-b
 
 ## Key Configuration
 
-Main backend settings live in `sign_bridge/src/main/resources/application.properties`.
+Main backend settings live in `sign_bridge/src/main/resources/application.yml`.
 
 - `sign.gpu.provider`
 - `sign.gpu.base-url`
@@ -116,6 +122,37 @@ cd sign_bridge
 ```bash
 dart analyze slr_input_kit
 ```
+
+4. Run the platform sample gallery
+
+```bash
+cd slr_input_kit/example
+flutter run
+```
+
+The sample app provides Android, iOS, iPad, Web, Windows, macOS/OSX, and Linux profiles. It uses `DemoLandmarkFrameSource` so the bridge and protobuf streaming flow can be exercised even before a real camera extractor is attached.
+
+## Platform Samples
+
+| Platform | Sample profile | Run command |
+| --- | --- | --- |
+| Android | `slr_input_kit/example/lib/samples/android_sample.dart` | `flutter run -d android` |
+| iOS | `slr_input_kit/example/lib/samples/ios_sample.dart` | `flutter run -d ios` |
+| iPad | `slr_input_kit/example/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
+| Web | `slr_input_kit/example/lib/samples/web_sample.dart` | `flutter run -d chrome` |
+| Windows | `slr_input_kit/example/lib/samples/windows_sample.dart` | `flutter run -d windows` |
+| macOS/OSX | `slr_input_kit/example/lib/samples/macos_sample.dart` | `flutter run -d macos` |
+| Linux | `slr_input_kit/example/lib/samples/linux_sample.dart` | `flutter run -d linux` |
+
+## Language and Sign Model Routing
+
+The Flutter client appends `locale`, `sign_language`, `model_profile`, and `protocol_version` to the WebSocket URL based on the current platform locale. Active keyboard layout APIs differ by platform, so host apps that can read the actual keyboard/input language should pass an explicit `SignLanguageContext`.
+
+English locales are normalized by the backend to `asl` and the `sign-gemma` model profile. The backend SPI stays language-independent by passing a standard `InferenceContext`, and model backends receive the JSON envelope documented in [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md).
+
+The API/SPI boundary is documented in [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md). New language model onboarding and the Sign Gemma-compatible model spec are documented in [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md).
+
+Public SignGemma findings and landmark support notes are documented in [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md).
 
 ## Local Broker Environments
 

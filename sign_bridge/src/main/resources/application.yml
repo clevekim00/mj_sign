@@ -37,11 +37,32 @@ spring:
     port: 5672
 
 sign:
+  language:
+    default-locale: ko-KR
+    default-sign-language: ksl
+    default-model-profile: sign-gemma-ko
+    protocol-version: mj-sign-model-v1
+    sign-language-by-locale-language:
+      ko: ksl
+      en: asl
+      ja: jsl
+      zh: csl
+      fr: lsf
+      de: dgs
+      es: lse
+    model-profile-by-sign-language:
+      ksl: sign-gemma-ko
+      asl: sign-gemma
+      jsl: sign-gemma-ja
+      csl: sign-gemma-zh
+      lsf: sign-gemma-fr
+      dgs: sign-gemma-de
+      lse: sign-gemma-es
   gpu:
     provider: http
     base-url: http://localhost:8000
     infer-path: /api/v2/recognize
-    health-path: /
+    health-path: /ready
     grpc-target: dns:///localhost:50051
     queue-transport: in-memory
     queue-broker-mode: loopback
