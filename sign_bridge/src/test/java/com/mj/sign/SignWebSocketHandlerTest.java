@@ -1,8 +1,11 @@
 package com.mj.sign;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.LandmarkFrame;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
+import com.mj.sign.service.AiTranslationProvider;
+import com.mj.sign.service.SignTranslationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.socket.BinaryMessage;
@@ -39,9 +42,10 @@ class SignWebSocketHandlerTest {
         ManualIdleFlushScheduler scheduler = new ManualIdleFlushScheduler();
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(gateway, Runnable::run, metricsService),
+                asyncInferenceService(gateway, Runnable::run, metricsService),
                 scheduler,
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-1");
 
@@ -49,8 +53,11 @@ class SignWebSocketHandlerTest {
         handler.handleBinaryMessage(session, new BinaryMessage(chunk("stream-1", 1).toByteArray()));
 
         assertEquals(1, session.messages.size());
-        assertTrue(session.messages.getFirst().contains("\"session_id\": \"stream-1\""));
+        assertTrue(session.messages.getFirst().contains("\"session_id\":\"stream-1\""));
+        assertTrue(session.messages.getFirst().contains("\"event_type\":\"status\""));
+        assertTrue(session.messages.getFirst().contains("\"status\":\"buffering\""));
         assertTrue(session.messages.getFirst().contains("Buffering 1 frames"));
+        assertFalse(session.messages.getFirst().contains("\"text\""));
         assertFalse(gateway.called);
         assertEquals(1, scheduler.tasks.size());
     }
@@ -70,9 +77,10 @@ class SignWebSocketHandlerTest {
         );
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(gateway, Runnable::run, metricsService),
+                asyncInferenceService(gateway, Runnable::run, metricsService),
                 new ManualIdleFlushScheduler(),
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-2");
 
@@ -83,8 +91,11 @@ class SignWebSocketHandlerTest {
         assertTrue(gateway.called);
         assertEquals(2, gateway.lastChunk.getFramesCount());
         assertEquals(3, session.messages.size());
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"event_type\":\"status\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"event_type\":\"result\"")));
         assertTrue(session.messages.stream().anyMatch(message -> message.contains("Processing 2 buffered frames")));
-        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"text\": \"translated\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"result_text\":\"translated\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"text\":\"translated\"")));
     }
 
     @Test
@@ -103,9 +114,10 @@ class SignWebSocketHandlerTest {
         ManualIdleFlushScheduler scheduler = new ManualIdleFlushScheduler();
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(gateway, Runnable::run, metricsService),
+                asyncInferenceService(gateway, Runnable::run, metricsService),
                 scheduler,
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-3");
 
@@ -117,8 +129,10 @@ class SignWebSocketHandlerTest {
 
         assertTrue(gateway.called);
         assertEquals(3, session.messages.size());
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"status\":\"idle_flush\"")));
         assertTrue(session.messages.stream().anyMatch(message -> message.contains("Idle timeout reached. Flushing 2 buffered frames.")));
-        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"text\": \"idle-translated\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"result_text\":\"idle-translated\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"text\":\"idle-translated\"")));
     }
 
     @Test
@@ -131,9 +145,10 @@ class SignWebSocketHandlerTest {
         ManualIdleFlushScheduler scheduler = new ManualIdleFlushScheduler();
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(gateway, executor, metricsService),
+                asyncInferenceService(gateway, executor, metricsService),
                 scheduler,
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-4");
 
@@ -145,7 +160,38 @@ class SignWebSocketHandlerTest {
         scheduler.runAll();
         executor.runAll();
 
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"status\":\"busy\"")));
         assertTrue(session.messages.stream().anyMatch(message -> message.contains("Inference already in progress for this session.")));
+    }
+
+    @Test
+    void sendsInferenceFailuresAsErrorEvents() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(1, 6, 1000, clock, metricsService);
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway(
+                TranslationResult.newBuilder()
+                        .setSessionId("stream-error")
+                        .setText("Failed to connect to GPU server.")
+                        .setIsFinal(true)
+                        .setConfidence(0.0f)
+                        .build()
+        );
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession("ws-error");
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(session, new BinaryMessage(chunk("stream-error", 1).toByteArray()));
+
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"event_type\":\"error\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"error_code\":\"inference-error\"")));
+        assertFalse(session.messages.stream().anyMatch(message -> message.contains("\"event_type\":\"result\"")));
     }
 
     @Test
@@ -155,9 +201,10 @@ class SignWebSocketHandlerTest {
         SessionBufferService bufferService = new SessionBufferService(2, 6, 1000, clock, metricsService);
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
+                asyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
                 new ManualIdleFlushScheduler(),
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-5");
 
@@ -165,6 +212,8 @@ class SignWebSocketHandlerTest {
         handler.handleBinaryMessage(session, new BinaryMessage(new byte[]{0x01, 0x02, 0x03}));
 
         assertEquals(1, session.messages.size());
+        assertTrue(session.messages.getFirst().contains("\"event_type\":\"error\""));
+        assertTrue(session.messages.getFirst().contains("\"error_code\":\"invalid-payload\""));
         assertTrue(session.messages.getFirst().contains("Failed to parse protobuf payload."));
     }
 
@@ -175,9 +224,10 @@ class SignWebSocketHandlerTest {
         SessionBufferService bufferService = new SessionBufferService(3, 6, 1000, clock, metricsService);
         SignWebSocketHandler handler = new SignWebSocketHandler(
                 bufferService,
-                new AsyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
+                asyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
                 new ManualIdleFlushScheduler(),
-                metricsService
+                metricsService,
+                new ObjectMapper()
         );
         RecordingWebSocketSession session = new RecordingWebSocketSession("ws-6");
 
@@ -197,6 +247,30 @@ class SignWebSocketHandlerTest {
             builder.addFrames(LandmarkFrame.newBuilder().setTimestampMs(index).build());
         }
         return builder.build();
+    }
+
+    private SignTranslationService translationService() {
+        return new SignTranslationService(new AiTranslationProvider() {
+            @Override
+            public String generateResponse(String systemPrompt, String userPrompt) {
+                return userPrompt;
+            }
+        });
+    }
+
+    private AsyncInferenceService asyncInferenceService(
+            InferenceGateway gateway,
+            java.util.concurrent.Executor executor,
+            BridgeMetricsService metricsService
+    ) {
+        return new AsyncInferenceService(
+                gateway,
+                executor,
+                metricsService,
+                translationService(),
+                false,
+                0.6f
+        );
     }
 
     private static final class RecordingInferenceGateway implements InferenceGateway {
