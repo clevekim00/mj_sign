@@ -43,7 +43,12 @@ class OperationsControllerTest {
         private final boolean healthy;
 
         private StubGpuProbeService(boolean healthy) {
-            super(new org.springframework.boot.web.client.RestTemplateBuilder(), properties());
+            super(
+                    new org.springframework.boot.web.client.RestTemplateBuilder(),
+                    properties(),
+                    emptyProvider(),
+                    emptyProvider()
+            );
             this.healthy = healthy;
         }
 
@@ -51,6 +56,35 @@ class OperationsControllerTest {
         public ProbeStatus probe() {
             return new ProbeStatus(healthy, Map.of("probe_url", "stub"));
         }
+    }
+
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> emptyProvider() {
+        return new org.springframework.beans.factory.ObjectProvider<>() {
+            @Override
+            public T getObject(Object... args) {
+                return null;
+            }
+
+            @Override
+            public T getIfAvailable() {
+                return null;
+            }
+
+            @Override
+            public T getIfUnique() {
+                return null;
+            }
+
+            @Override
+            public T getObject() {
+                return null;
+            }
+
+            @Override
+            public java.util.Iterator<T> iterator() {
+                return java.util.Collections.emptyIterator();
+            }
+        };
     }
 
     private static GpuServingProperties properties() {

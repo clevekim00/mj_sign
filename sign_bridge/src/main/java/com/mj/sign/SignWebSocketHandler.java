@@ -1,9 +1,10 @@
 package com.mj.sign;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -15,16 +16,18 @@ import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 import java.time.Duration;
 import java.nio.ByteBuffer;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class SignWebSocketHandler extends BinaryWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(SignWebSocketHandler.class);
-    private static final JsonFormat.Printer JSON_PRINTER = JsonFormat.printer()
-            .preservingProtoFieldNames();
 
     private final ConcurrentHashMap<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> websocketToStreamSessionIds = new ConcurrentHashMap<>();
+    private final ObjectMapper objectMapper;
     private final SessionBufferService sessionBufferService;
     private final AsyncInferenceService asyncInferenceService;
     private final IdleFlushScheduler idleFlushScheduler;
@@ -34,12 +37,14 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
             SessionBufferService sessionBufferService,
             AsyncInferenceService asyncInferenceService,
             IdleFlushScheduler idleFlushScheduler,
-            BridgeMetricsService metricsService
+            BridgeMetricsService metricsService,
+            ObjectMapper objectMapper
     ) {
         this.sessionBufferService = sessionBufferService;
         this.asyncInferenceService = asyncInferenceService;
         this.idleFlushScheduler = idleFlushScheduler;
         this.metricsService = metricsService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -55,7 +60,7 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         try {
             ClientStreamChunk chunk = ClientStreamChunk.parseFrom(toByteArray(message.getPayload()));
             if (chunk.getSessionId().isBlank()) {
-                sendResult(session, errorResult("missing-session", "session_id is required."));
+                sendError(session, "missing-session", "missing-session", "session_id is required.");
                 return;
             }
 
@@ -63,7 +68,12 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
             websocketToStreamSessionIds.put(session.getId(), chunk.getSessionId());
             BufferedChunkResult buffered = sessionBufferService.append(chunk);
             if (!buffered.readyForInference()) {
-                sendResult(session, bufferingResult(chunk.getSessionId(), buffered.bufferedFrameCount()));
+                sendStatus(
+                        session,
+                        chunk.getSessionId(),
+                        "buffering",
+                        "Buffering " + buffered.bufferedFrameCount() + " frames before inference."
+                );
                 scheduleIdleFlush(session, chunk.getSessionId(), buffered.scheduleToken());
                 return;
             }
@@ -72,7 +82,7 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         } catch (InvalidProtocolBufferException e) {
             log.warn("Failed to parse protobuf message from {}", session.getId(), e);
             metricsService.incrementPayloadErrors();
-            sendResult(session, errorResult("invalid-payload", "Failed to parse protobuf payload."));
+            sendError(session, "invalid-payload", "invalid-payload", "Failed to parse protobuf payload.");
         }
     }
 
@@ -87,64 +97,91 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         }
     }
 
-    private void sendResult(WebSocketSession session, TranslationResult result) throws Exception {
-        session.sendMessage(new TextMessage(JSON_PRINTER.print(result)));
+    private void sendRecognitionResult(WebSocketSession session, TranslationResult result) throws Exception {
+        session.sendMessage(new TextMessage(toJson(resultEvent(result))));
     }
 
-    private void safeSendResult(WebSocketSession session, TranslationResult result) {
+    private void sendStatus(WebSocketSession session, String sessionId, String status, String text) throws Exception {
+        session.sendMessage(new TextMessage(toJson(statusEvent(sessionId, status, text))));
+    }
+
+    private void sendError(WebSocketSession session, String sessionId, String errorCode, String text) throws Exception {
+        session.sendMessage(new TextMessage(toJson(errorEvent(sessionId, errorCode, text))));
+    }
+
+    private void safeSendInferenceEvent(WebSocketSession session, TranslationResult result) {
         if (!session.isOpen()) {
             return;
         }
         try {
-            sendResult(session, result);
+            if (isInferenceError(result)) {
+                sendError(session, result.getSessionId(), "inference-error", result.getText());
+            } else {
+                sendRecognitionResult(session, result);
+            }
         } catch (Exception e) {
             log.warn("Failed to send async result to session {}", session.getId(), e);
         }
     }
 
-    private TranslationResult errorResult(String sessionId, String text) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText(text)
-                .setIsFinal(true)
-                .setConfidence(0.0f)
-                .build();
+    private void safeSendStatus(WebSocketSession session, String sessionId, String status, String text) {
+        if (!session.isOpen()) {
+            return;
+        }
+        try {
+            sendStatus(session, sessionId, status, text);
+        } catch (Exception e) {
+            log.warn("Failed to send status to session {}", session.getId(), e);
+        }
     }
 
-    private TranslationResult bufferingResult(String sessionId, int bufferedFrameCount) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText("Buffering " + bufferedFrameCount + " frames before inference.")
-                .setIsFinal(false)
-                .setConfidence(0.0f)
-                .build();
+    private Map<String, Object> resultEvent(TranslationResult result) {
+        Map<String, Object> event = baseEvent(result.getSessionId(), "result");
+        event.put("result_text", result.getText());
+        event.put("text", result.getText());
+        event.put("is_final", result.getIsFinal());
+        event.put("confidence", result.getConfidence());
+        return event;
     }
 
-    private TranslationResult processingResult(String sessionId, int bufferedFrameCount) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText("Processing " + bufferedFrameCount + " buffered frames.")
-                .setIsFinal(false)
-                .setConfidence(0.0f)
-                .build();
+    private Map<String, Object> statusEvent(String sessionId, String status, String text) {
+        Map<String, Object> event = baseEvent(sessionId, "status");
+        event.put("status", status);
+        event.put("status_text", text);
+        event.put("is_final", false);
+        event.put("confidence", 0.0f);
+        return event;
     }
 
-    private TranslationResult busyResult(String sessionId) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText("Inference already in progress for this session.")
-                .setIsFinal(false)
-                .setConfidence(0.0f)
-                .build();
+    private Map<String, Object> errorEvent(String sessionId, String errorCode, String text) {
+        Map<String, Object> event = baseEvent(sessionId, "error");
+        event.put("error_code", errorCode);
+        event.put("status_text", text);
+        event.put("is_final", true);
+        event.put("confidence", 0.0f);
+        return event;
     }
 
-    private TranslationResult idleFlushResult(String sessionId, int bufferedFrameCount) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText("Idle timeout reached. Flushing " + bufferedFrameCount + " buffered frames.")
-                .setIsFinal(false)
-                .setConfidence(0.0f)
-                .build();
+    private Map<String, Object> baseEvent(String sessionId, String eventType) {
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("session_id", sessionId);
+        event.put("event_type", eventType);
+        return event;
+    }
+
+    private String toJson(Map<String, Object> event) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(event);
+    }
+
+    private boolean isInferenceError(TranslationResult result) {
+        if (!result.getIsFinal() || result.getConfidence() > 0.0f || result.getText().isBlank()) {
+            return false;
+        }
+        String normalized = result.getText().toLowerCase(Locale.ROOT);
+        return normalized.startsWith("failed ")
+                || normalized.startsWith("async inference failed")
+                || normalized.startsWith("queue transport ")
+                || normalized.startsWith("no inference gateway registered");
     }
 
     private void scheduleIdleFlush(WebSocketSession session, String streamSessionId, long scheduleToken) {
@@ -159,7 +196,12 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
                                 return;
                             }
                             metricsService.incrementIdleFlushTriggered();
-                            safeSendResult(activeSession, idleFlushResult(streamSessionId, buffered.bufferedFrameCount()));
+                            safeSendStatus(
+                                    activeSession,
+                                    streamSessionId,
+                                    "idle_flush",
+                                    "Idle timeout reached. Flushing " + buffered.bufferedFrameCount() + " buffered frames."
+                            );
                             dispatchBufferedChunk(activeSession, streamSessionId, buffered);
                         })
         );
@@ -169,14 +211,24 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
         boolean accepted = asyncInferenceService.dispatch(
                 streamSessionId,
                 buffered.chunk(),
-                result -> safeSendResult(session, result)
+                result -> safeSendInferenceEvent(session, result)
         );
         if (accepted) {
             if (!buffered.idleTimeoutTriggered()) {
-                safeSendResult(session, processingResult(streamSessionId, buffered.bufferedFrameCount()));
+                safeSendStatus(
+                        session,
+                        streamSessionId,
+                        "processing",
+                        "Processing " + buffered.bufferedFrameCount() + " buffered frames."
+                );
             }
         } else {
-            safeSendResult(session, busyResult(streamSessionId));
+            safeSendStatus(
+                    session,
+                    streamSessionId,
+                    "busy",
+                    "Inference already in progress for this session."
+            );
         }
     }
 
