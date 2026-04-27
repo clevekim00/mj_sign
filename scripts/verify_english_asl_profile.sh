@@ -45,12 +45,12 @@ curl -fsS http://127.0.0.1:8000/health | grep -q '"model_profile":"sign-gemma"'
 
 echo "Sending English/ASL WebSocket protobuf probe through HTTP provider..."
 python3 "$ROOT_DIR/scripts/send_websocket_probe.py" \
-  --url 'ws://127.0.0.1:8080/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=mj-sign-model-v1' \
+  --url 'ws://127.0.0.1:8080/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=signbridge-model-v1' \
   --session-id "asl-profile-probe" \
   --expect-json-field locale=en-US \
   --expect-json-field sign_language=asl \
   --expect-json-field model_profile=sign-gemma \
-  --expect-json-field protocol_version=mj-sign-model-v1
+  --expect-json-field protocol_version=signbridge-model-v1
 
 echo "Metrics snapshot:"
 METRICS="$(curl -fsS http://127.0.0.1:8080/internal/metrics)"

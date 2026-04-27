@@ -13,9 +13,9 @@ sign language into text, with the strongest initial focus on ASL to English.
 
 As of this review, I could not verify an official Google model card, downloadable
 weights page, or exact landmark/input tensor specification for SignGemma from
-the public Google Gemma model page. Therefore, this project treats SignGemma as a
-profile-compatible serving target and keeps the model adapter contract stable
-until official weights/specs are available.
+the public Google Gemma model page. Therefore, SignBridge treats SignGemma as a
+profile-compatible serving target for LinguaSign and keeps the model adapter
+contract stable until official weights/specs are available.
 
 ## What Is Publicly Reported
 
@@ -66,9 +66,9 @@ mentions sign-language translation and visual understanding, but does not define
 whether SignGemma consumes MediaPipe landmarks, raw video, or another vision
 representation.
 
-### MJ Sign Project Contract
+### SignBridge Project Contract
 
-MJ Sign currently standardizes on a MediaPipe-style protobuf landmark contract:
+SignBridge currently standardizes on a MediaPipe-style protobuf landmark contract:
 
 ```proto
 message LandmarkFrame {
@@ -96,13 +96,13 @@ MediaPipe reference:
 
 ## Implementation Decision for This Repository
 
-Until official SignGemma weights/specs are available, MJ Sign treats
+Until official SignGemma weights/specs are available, SignBridge treats
 `model_profile=sign-gemma` as an English/ASL-compatible serving profile:
 
 - `locale`: `en-US`
 - `sign_language`: `asl`
 - `model_profile`: `sign-gemma`
-- `protocol_version`: `mj-sign-model-v1`
+- `protocol_version`: `signbridge-model-v1` (`mj-sign-model-v1` remains a legacy alias)
 - input transport: `protobuf-b64`
 - input schema: `mj.sign.ClientStreamChunk`
 - landmark schema: `left_hand`, `right_hand`, `pose`, `face_contour`

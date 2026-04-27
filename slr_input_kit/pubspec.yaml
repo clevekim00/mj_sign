@@ -1,7 +1,7 @@
 name: slr_input_kit
-description: "A cross-platform Flutter sign-language input kit backed by MJ Sign Bridge."
+description: "SignInputKit is a cross-platform Flutter sign-language input kit backed by SignBridge."
 version: 0.0.1
-homepage: https://github.com/clevekim00/mj_sign
+homepage: https://github.com/clevekim00/signbridge
 
 environment:
   sdk: ^3.10.4

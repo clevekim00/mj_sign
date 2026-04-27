@@ -49,10 +49,10 @@ public class SignLanguageResolver {
                 locale,
                 signLanguage,
                 modelProfile,
-                normalizeToken(
+                InferenceContext.normalizeProtocolVersion(normalizeToken(
                         rawProtocolVersion,
                         normalizeToken(properties.getProtocolVersion(), InferenceContext.DEFAULT_PROTOCOL_VERSION)
-                )
+                ))
         );
     }
 

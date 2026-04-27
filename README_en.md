@@ -1,7 +1,9 @@
-# MJ Sign
+# SignBridge
 
 This project is a cloud-oriented V2 prototype for sign language recognition.
 
+- Platform/product branding: SignBridge platform powering the LinguaSign product
+- SDK brand: SignInputKit, currently kept as package `slr_input_kit`
 - Flutter client plugin: `slr_input_kit/`
 - Spring Boot bridge: `sign_bridge/`
 - Python mock GPU server: `sign_gemma_mock/`
@@ -16,7 +18,7 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 
 ```mermaid
 graph TD
-    A["Flutter client / slr_input_kit"] -->|"protobuf landmark frames"| B["Spring Boot bridge / sign_bridge"]
+    A["SignInputKit SDK / slr_input_kit"] -->|"protobuf landmark frames"| B["Spring Boot SignBridge backend / sign_bridge"]
     B --> C["Session buffer + idle timeout flush"]
     C --> D["Async inference dispatcher"]
     D --> E{"Inference provider"}
@@ -72,7 +74,7 @@ The contract remains executable today via the in-memory transport plus an HTTP-b
 ## Repository Structure
 
 - `slr_input_kit/`
-  Flutter public API, demo widget, protobuf models, Sign Bridge client, and platform sample gallery
+  SignInputKit SDK public API, demo widget, protobuf models, SignBridge client, and platform sample gallery
 - `sign_bridge/`
   Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
 - `sign_gemma_mock/`

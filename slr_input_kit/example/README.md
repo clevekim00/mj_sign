@@ -1,12 +1,13 @@
-# MJ Sign Flutter Samples
+# LinguaSign SignInputKit Samples
 
-This example app is a platform sample gallery for `slr_input_kit`. It shows how
-the same sign-language input widget can be prepared for Android, iPhone, iPad,
-Web, Windows, macOS/OSX, and Linux while keeping the backend contract identical.
+This example app is a platform sample gallery for the SignInputKit SDK
+(`slr_input_kit`). It shows how the same sign-language input widget can be
+prepared for Android, iPhone, iPad, Web, Windows, macOS/OSX, and Linux while
+keeping the SignBridge backend contract identical.
 
 ## What the Sample Demonstrates
 
-- `SlrInputWidget` connected to the Spring Sign Bridge over WebSocket.
+- `SlrInputWidget` connected to the Spring SignBridge backend over WebSocket.
 - Platform-specific bridge URLs and execution commands.
 - A deterministic demo landmark source that exercises the protobuf streaming
   contract without requiring a real camera extractor.

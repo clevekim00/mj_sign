@@ -1,6 +1,6 @@
 # Language Model Onboarding Guide
 
-이 문서는 MJ Sign에 새로운 언어/수어 모델을 추가하는 절차와 Sign Gemma 호환 model spec을 정리합니다. 목표는 새 언어를 추가해도 `InferenceGateway`, `QueueInferenceTransport`, WebSocket API를 바꾸지 않는 것입니다.
+이 문서는 LinguaSign 제품을 구동하는 SignBridge 플랫폼에 새로운 언어/수어 모델을 추가하는 절차와 Sign Gemma 호환 model spec을 정리합니다. 목표는 새 언어를 추가해도 `InferenceGateway`, `QueueInferenceTransport`, WebSocket API를 바꾸지 않는 것입니다.
 
 ## 기본 원칙
 
@@ -38,7 +38,7 @@ output_language: en
 output_mode: sentence
 input_schema: mj.sign.ClientStreamChunk
 input_schema_version: v1
-protocol_version: mj-sign-model-v1
+protocol_version: signbridge-model-v1
 transport: protobuf-b64
 min_frames: 8
 max_frames: 24
@@ -80,7 +80,7 @@ Request:
   "frame_count": 12,
   "transport": "protobuf-b64",
   "client_schema_version": "v1",
-  "protocol_version": "mj-sign-model-v1",
+  "protocol_version": "signbridge-model-v1",
   "locale": "en-US",
   "sign_language": "asl",
   "model_profile": "sign-gemma"
@@ -97,7 +97,7 @@ Response:
   "confidence": 0.94,
   "processing_time_ms": 128,
   "model_version": "sign-gemma-asl-v1",
-  "protocol_version": "mj-sign-model-v1",
+  "protocol_version": "signbridge-model-v1",
   "locale": "en-US",
   "sign_language": "asl",
   "model_profile": "sign-gemma",

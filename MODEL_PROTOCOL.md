@@ -1,6 +1,6 @@
-# MJ Sign Model Protocol
+# SignBridge Model Protocol
 
-This document defines the stable contract between the Sign Bridge backend and
+This document defines the stable contract between the SignBridge backend and
 model-serving backends. The goal is to keep the backend SPI identical across
 spoken languages and sign languages while allowing each model backend to select
 the correct recognition profile.
@@ -23,7 +23,7 @@ the correct recognition profile.
 `slr_input_kit` appends language context to the WebSocket URL:
 
 ```text
-ws://127.0.0.1:8080/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=mj-sign-model-v1
+ws://127.0.0.1:8080/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=signbridge-model-v1
 ```
 
 The default Flutter client derives `locale` from `PlatformDispatcher.locale`.
@@ -75,9 +75,9 @@ SPI ownership:
 
 | SPI | Owner | Implementations |
 | --- | --- | --- |
-| `InferenceGateway` | Sign Bridge | HTTP, gRPC, queue |
-| `GpuServingClient` | Sign Bridge model adapter | HTTP model serving |
-| `QueueInferenceTransport` | Sign Bridge queue adapter | in-memory, Kafka, RabbitMQ |
+| `InferenceGateway` | SignBridge | HTTP, gRPC, queue |
+| `GpuServingClient` | SignBridge model adapter | HTTP model serving |
+| `QueueInferenceTransport` | SignBridge queue adapter | in-memory, Kafka, RabbitMQ |
 | `QueueWorkerBackend` | Worker process | HTTP-backed worker backend |
 
 See [API_SPI_REFERENCE.md](./API_SPI_REFERENCE.md) for the full API/SPI map.
@@ -93,7 +93,7 @@ HTTP, Kafka, RabbitMQ, and future gRPC adapters should preserve this envelope.
   "frame_count": 12,
   "transport": "protobuf-b64",
   "client_schema_version": "v1",
-  "protocol_version": "mj-sign-model-v1",
+  "protocol_version": "signbridge-model-v1",
   "locale": "en-US",
   "sign_language": "asl",
   "model_profile": "sign-gemma"
@@ -107,7 +107,7 @@ Field notes:
 - `frame_count`: number of landmark frames in the request.
 - `transport`: payload encoding. Current value is `protobuf-b64`.
 - `client_schema_version`: landmark protobuf schema version from the client.
-- `protocol_version`: BE-model protocol version.
+- `protocol_version`: BE-model protocol version. `signbridge-model-v1` is canonical; legacy `mj-sign-model-v1` is accepted and normalized at the SignBridge boundary.
 - `locale`: BCP-47 style locale hint such as `ko-KR` or `en-US`.
 - `sign_language`: normalized sign language code such as `ksl` or `asl`.
 - `model_profile`: backend-selected model profile. English defaults to
@@ -125,7 +125,7 @@ Model backends should return:
   "confidence": 0.94,
   "processing_time_ms": 128,
   "model_version": "sign-gemma",
-  "protocol_version": "mj-sign-model-v1",
+  "protocol_version": "signbridge-model-v1",
   "locale": "en-US",
   "sign_language": "asl",
   "model_profile": "sign-gemma",
@@ -151,7 +151,7 @@ output_language: en
 output_mode: sentence
 input_schema: mj.sign.ClientStreamChunk
 input_schema_version: v1
-protocol_version: mj-sign-model-v1
+protocol_version: signbridge-model-v1
 transport: protobuf-b64
 min_frames: 8
 max_frames: 24
@@ -184,4 +184,5 @@ The LLM refinement layer uses the same `InferenceContext`.
 - Add new optional fields rather than changing existing names.
 - Keep `protocol_version` stable for compatible changes.
 - Bump `protocol_version` when payload semantics or required fields change.
+- Keep `mj-sign-model-v1` as a temporary legacy alias during the SignBridge rebrand window.
 - Provider-specific transports must not rename the envelope fields.

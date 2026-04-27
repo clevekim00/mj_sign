@@ -18,7 +18,7 @@ class SignLanguageContext {
     required this.locale,
     required this.signLanguage,
     this.modelProfile,
-    this.protocolVersion = 'mj-sign-model-v1',
+    this.protocolVersion = 'signbridge-model-v1',
   });
 
   final String locale;

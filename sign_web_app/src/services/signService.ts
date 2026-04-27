@@ -7,7 +7,7 @@ export class SignBridgeClient {
   private onMessageCallback: (data: any) => void = () => {};
   private onErrorCallback: (err: any) => void = () => {};
 
-  connect(url: string = "ws://127.0.0.1:8080/ws/sign") {
+  connect(url: string = "ws://127.0.0.1:8080/ws/sign?locale=ko-KR&sign_language=ksl&model_profile=sign-gemma-ko&protocol_version=signbridge-model-v1") {
     console.log(`Attempting to connect to Bridge: ${url}`);
     try {
       this.socket = new WebSocket(url);

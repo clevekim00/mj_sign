@@ -1,6 +1,6 @@
-# MJ Sign API / SPI Reference
+# SignBridge API / SPI Reference
 
-이 문서는 MJ Sign에서 외부 client, Spring bridge, inference provider, queue worker, model backend가 만나는 API/SPI 경계를 정리합니다. 목표는 언어가 늘어나도 BE 내부 SPI와 BE-model protocol이 흔들리지 않도록 하는 것입니다.
+이 문서는 LinguaSign 제품을 구동하는 SignBridge 플랫폼에서 외부 client, Spring bridge, inference provider, queue worker, model backend가 만나는 API/SPI 경계를 정리합니다. 목표는 언어가 늘어나도 BE 내부 SPI와 BE-model protocol이 흔들리지 않도록 하는 것입니다.
 
 ## 용어
 
@@ -38,7 +38,7 @@ SlrInputWidget(
 
 | 이름 | 역할 |
 | --- | --- |
-| `bridgeUrl` | Spring Sign Bridge WebSocket endpoint |
+| `bridgeUrl` | Spring SignBridge WebSocket endpoint |
 | `languageContext` | locale/sign language/model profile 힌트 |
 | `landmarkFrameStream` | 외부에서 만든 landmark batch stream |
 | `landmarkFrameSource` | start/stop/dispose lifecycle을 가진 landmark source |
@@ -79,7 +79,7 @@ Query parameters:
 | `locale` | `en-US` | 아니오 | BCP-47 style locale hint |
 | `sign_language` | `asl` | 아니오 | 정규화된 수어 코드 |
 | `model_profile` | `sign-gemma` | 아니오 | 사용할 model profile |
-| `protocol_version` | `mj-sign-model-v1` | 아니오 | BE-model protocol version |
+| `protocol_version` | `signbridge-model-v1` | 아니오 | BE-model protocol version. Legacy `mj-sign-model-v1`은 SignBridge boundary에서 canonicalize됩니다. |
 
 Client to BE payload:
 
@@ -185,7 +185,7 @@ TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext con
 | `locale` | `en-US` | spoken/written output locale hint |
 | `sign_language` | `asl` | normalized sign language code |
 | `model_profile` | `sign-gemma` | model serving profile name |
-| `protocol_version` | `mj-sign-model-v1` | BE-model protocol version |
+| `protocol_version` | `signbridge-model-v1` | BE-model protocol version |
 
 ### GpuServingClient
 

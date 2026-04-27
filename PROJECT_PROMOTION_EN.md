@@ -1,12 +1,13 @@
-# MJ Sign Project Overview
+# LinguaSign Product Overview
 
 Korean version: [PROJECT_PROMOTION_KO.md](./PROJECT_PROMOTION_KO.md)
 
 ## One-Line Pitch
 
-MJ Sign is a cross-platform sign language recognition bridge that connects sign
-input to mobile, web, desktop, and backend services while leaving room for
-language-specific Sign Gemma-compatible model profiles.
+LinguaSign is a cross-platform sign language input product powered by the
+SignBridge platform. It connects sign input to mobile, web, desktop, and backend
+services while leaving room for language-specific Sign Gemma-compatible model
+profiles.
 
 ## Problem
 
@@ -16,12 +17,12 @@ than a model call: camera capture, landmark extraction, realtime inference,
 sentence refinement, health checks, metrics, retries, and deployment contracts
 must all fit together.
 
-MJ Sign splits that problem into a reusable input widget, a backend bridge,
+SignBridge splits that problem into the SignInputKit SDK, a backend bridge,
 GPU-serving adapters, queue workers, and an optional LLM refinement layer.
 
 ## Core Value
 
-- App teams can experiment with sign input by embedding `SlrInputWidget`.
+- App teams can experiment with sign input by embedding SignInputKit's `SlrInputWidget`.
 - Model teams can swap GPU serving behind HTTP, gRPC, or queue providers.
 - Operations teams get health, readiness, metrics, retry, and DLQ patterns.
 - Users receive refined natural-language text instead of raw recognition tokens.
@@ -32,8 +33,8 @@ GPU-serving adapters, queue workers, and an optional LLM refinement layer.
 
 1. A user taps the sign input icon next to a chat box, search box, or form field.
 2. The Flutter input widget captures hand, pose, and face landmark frames.
-3. Landmark batches are sent to Sign Bridge over WebSocket protobuf.
-4. Sign Bridge buffers frames per session and flushes inference on idle timeout.
+3. Landmark batches are sent to SignBridge over WebSocket protobuf.
+4. SignBridge buffers frames per session and flushes inference on idle timeout.
 5. A GPU serving backend returns sign keywords or a draft sentence.
 6. The LLM refinement layer turns the raw output into a natural sentence for the
    current language context.
@@ -41,12 +42,12 @@ GPU-serving adapters, queue workers, and an optional LLM refinement layer.
 
 ## English/ASL Sign Gemma Profile
 
-MJ Sign standardizes English sign input around
+SignBridge standardizes English LinguaSign input around
 `locale=en-US`, `sign_language=asl`, and `model_profile=sign-gemma`.
 
 - The Flutter client passes platform locale or app-provided `SignLanguageContext`
   through WebSocket query parameters.
-- Sign Bridge normalizes the values into `InferenceContext` and forwards the same
+- SignBridge normalizes the values into `InferenceContext` and forwards the same
   context through HTTP, queue, and future gRPC providers.
 - The mock GPU server exposes English/ASL metadata, supported landmarks, and mock
   responses through the `sign-gemma` profile registry.
@@ -87,7 +88,7 @@ MJ Sign standardizes English sign input around
 ## Landmark Contract
 
 The exact official SignGemma input landmark specification has not been verified
-from a public model card yet. MJ Sign therefore uses a MediaPipe-style protobuf
+from a public model card yet. SignBridge therefore uses a MediaPipe-style protobuf
 contract at the adapter boundary.
 
 | Input field | Current support | Purpose |
@@ -97,7 +98,7 @@ contract at the adapter boundary.
 | `pose` | Selected upper-body pose landmarks | Shoulder, arm, and body orientation context |
 | `face_contour` | Selected mouth, jaw, and face landmarks | Non-manual markers and facial context |
 
-When official SignGemma weights and input schemas become available, MJ Sign can
+When official SignGemma weights and input schemas become available, SignBridge can
 adapt this contract inside the model adapter while preserving the backend-model
 envelope.
 
@@ -146,7 +147,7 @@ For a quick English/ASL HTTP-stack check, use the local stack described by
 
 ## Current Maturity And Gaps
 
-MJ Sign currently includes the bridge, provider routing, mock GPU server,
+SignBridge currently includes the bridge, provider routing, mock GPU server,
 English/ASL `sign-gemma` profile registry, profile-aware health/readiness,
 queue worker contract, broker serializer/converter settings, and a platform
 sample gallery.
@@ -168,6 +169,6 @@ dataset-backed evaluation.
 
 ## Message
 
-MJ Sign is not just a sign-recognition model demo. Its goal is to make the whole
-path usable: sign input on real devices, stable backend routing, swappable model
-serving, and natural text output that applications can adopt.
+LinguaSign is not just a sign-recognition model demo. Its goal is to make the
+whole path usable: sign input on real devices, stable SignBridge routing,
+swappable model serving, and natural text output that applications can adopt.

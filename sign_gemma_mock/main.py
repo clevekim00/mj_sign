@@ -14,7 +14,7 @@ except ImportError:
     import landmark_pb2 # Fallback if path differs
 from schema.landmark_pb2 import ClientStreamChunk
 from logger_config import logger
-from profile_registry import profile_registry
+from profile_registry import DEFAULT_PROTOCOL_VERSION, normalize_protocol_version, profile_registry
 from sign_gemma_model import engine_registry
 
 app = FastAPI(title="Sign-Gemma Inference Server")
@@ -32,7 +32,7 @@ class InferenceRequest(BaseModel):
     frame_count: int | None = None
     transport: str | None = None
     client_schema_version: str | None = None
-    protocol_version: str = "mj-sign-model-v1"
+    protocol_version: str = DEFAULT_PROTOCOL_VERSION
     locale: str = "ko-KR"
     sign_language: str = "ksl"
     model_profile: str = "sign-gemma-ko"
@@ -85,6 +85,7 @@ def readiness_check():
 async def recognize_sign(req: InferenceRequest):
     try:
         profile = profile_registry.resolve(req.model_profile, req.locale, req.sign_language)
+        protocol_version = normalize_protocol_version(req.protocol_version)
         # Decode the base64 protobuf string
         decoded_bytes = base64.b64decode(req.protobuf_b64)
         chunk = landmark_pb2.ClientStreamChunk()
@@ -124,7 +125,7 @@ async def recognize_sign(req: InferenceRequest):
                 "confidence": 0.95,
                 "processing_time_ms": int(delay * 1000),
                 "model_version": profile.model_version,
-                "protocol_version": req.protocol_version or profile.protocol_version,
+                "protocol_version": protocol_version,
                 "locale": req.locale or profile.locale,
                 "sign_language": req.sign_language or profile.sign_language,
                 "model_profile": profile.model_profile,
@@ -139,7 +140,7 @@ async def recognize_sign(req: InferenceRequest):
             "confidence": round(random.uniform(0.85, 0.99), 2),
             "processing_time_ms": int(delay * 1000),
             "model_version": profile.model_version,
-            "protocol_version": req.protocol_version or profile.protocol_version,
+            "protocol_version": protocol_version,
             "locale": req.locale or profile.locale,
             "sign_language": req.sign_language or profile.sign_language,
             "model_profile": profile.model_profile,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Wifi, Settings, MessageSquare, Activity, ShieldCheck } from 'lucide-react';
+import { Camera, Settings, MessageSquare, Activity, ShieldCheck } from 'lucide-react';
 import { SignBridgeClient, SignMLService } from './services/signService';
 import './index.css';
 
@@ -152,9 +152,9 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tighter glow-text leading-tight">
-            Sign<span className="text-blue-500">SampleApp</span>
+            Lingua<span className="text-blue-500">Sign</span>
           </h1>
-          <p className="text-[10px] text-text-muted font-bold tracking-widest uppercase opacity-60">Premium Dashboard</p>
+          <p className="text-[10px] text-text-muted font-bold tracking-widest uppercase opacity-60">SignBridge Web Demo</p>
           </div>
         </div>
 
@@ -327,11 +327,11 @@ const App: React.FC = () => {
 
       <footer className="mt-8 py-4 w-full max-w-7xl flex justify-between items-center text-text-muted text-[10px] tracking-widest uppercase z-10 border-t border-white/5">
         <div className="flex gap-4">
-          <span>Bridge 2.0.4-RELEASE</span>
+          <span>SignBridge 2.0.4-RELEASE</span>
           <span>•</span>
           <span>MediaPipe Tasks Engine</span>
         </div>
-        <span>© 2026 Sign-SampleApp Project</span>
+        <span>© 2026 LinguaSign Project</span>
       </footer>
     </div>
   );

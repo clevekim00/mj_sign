@@ -1,7 +1,9 @@
-# MJ Sign
+# SignBridge
 
 이 프로젝트는 수어 인식을 위한 클라우드 지향 V2 파이프라인 프로토타입입니다.
 
+- 플랫폼/제품 브랜딩: LinguaSign 제품을 구동하는 SignBridge 플랫폼
+- SDK 브랜드: SignInputKit, 현재 package 이름은 `slr_input_kit` 유지
 - Flutter 클라이언트 플러그인: `slr_input_kit/`
 - Spring Boot 브릿지: `sign_bridge/`
 - Python mock GPU 서버: `sign_gemma_mock/`
@@ -16,7 +18,7 @@
 
 ```mermaid
 graph TD
-    A["Flutter 클라이언트 / slr_input_kit"] -->|"protobuf 랜드마크 프레임"| B["Spring Boot 브릿지 / sign_bridge"]
+    A["SignInputKit SDK / slr_input_kit"] -->|"protobuf 랜드마크 프레임"| B["Spring Boot SignBridge backend / sign_bridge"]
     B --> C["세션 버퍼 + idle timeout flush"]
     C --> D["비동기 추론 디스패처"]
     D --> E{"추론 provider"}
@@ -72,7 +74,7 @@ graph TD
 ## 디렉터리 구조
 
 - `slr_input_kit/`
-  Flutter 공개 API, 데모 위젯, protobuf 모델, Sign Bridge 클라이언트, 플랫폼별 샘플 갤러리
+  SignInputKit SDK 공개 API, 데모 위젯, protobuf 모델, SignBridge 클라이언트, 플랫폼별 샘플 갤러리
 - `sign_bridge/`
   Spring Boot WebSocket 브릿지 (Kotlin/build.gradle.kts), 버퍼링 로직, 비동기 디스패치, 서버 라우팅, 큐 워커 계약 및 **Gemma 2 LLM 번역 레이어**.
 - `sign_gemma_mock/`

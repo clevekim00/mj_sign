@@ -1,12 +1,12 @@
-# MJ Sign: 상세 기술 명세 및 통합 가이드 (Detailed Technical Guide)
+# SignBridge / LinguaSign: 상세 기술 명세 및 통합 가이드 (Detailed Technical Guide)
 
-이 문서는 `mj_sign` 시스템의 웹 샘플 데모를 기반으로 한 상세 기술 명세서입니다. 시스템의 아키텍처, 데이터 프로토콜, 그리고 실 서비스 통합을 위한 기술적 세부 사항을 다룹니다.
+이 문서는 LinguaSign 웹 샘플 데모를 기반으로 한 SignBridge 상세 기술 명세서입니다. 시스템의 아키텍처, 데이터 프로토콜, 그리고 실 서비스 통합을 위한 기술적 세부 사항을 다룹니다.
 
 ---
 
 ## 1. 시스템 아키텍처 (Cloud Bridge V2)
 
-MJ Sign은 단순히 수어를 텍스트로 바꾸는 것을 넘어, 분산된 GPU 환경과 지연 시간에 민감한 클라이언트 간의 **고성능 브리지(Bridge)** 역할을 수행합니다.
+SignBridge는 단순히 수어를 텍스트로 바꾸는 것을 넘어, 분산된 GPU 환경과 지연 시간에 민감한 클라이언트 간의 **고성능 브리지(Bridge)** 역할을 수행합니다.
 
 ### 1.1 데이터 흐름 (Data Pipeline)
 1.  **Capture**: Flutter 클라이언트(또는 웹 샘플)가 MediaPipe를 통해 랜드마크를 추출합니다.
@@ -62,7 +62,7 @@ MJ Sign은 단순히 수어를 텍스트로 바꾸는 것을 넘어, 분산된 G
 const socket = new WebSocket('ws://your-bridge-server/ws/sign');
 
 socket.onopen = () => {
-    console.log('MJ Sign Bridge Connected');
+    console.log('SignBridge Connected');
     // 세션 시작 메시지 전송
 };
 

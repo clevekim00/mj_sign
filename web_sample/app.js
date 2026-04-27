@@ -1,5 +1,5 @@
 /**
- * MJ Sign Web Sample - Application Logic
+ * LinguaSign Web Sample - Application Logic
  */
 
 class LandmarkVisualizer {

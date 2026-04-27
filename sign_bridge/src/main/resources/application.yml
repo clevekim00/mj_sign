@@ -41,7 +41,7 @@ sign:
     default-locale: ko-KR
     default-sign-language: ksl
     default-model-profile: sign-gemma-ko
-    protocol-version: mj-sign-model-v1
+    protocol-version: signbridge-model-v1
     sign-language-by-locale-language:
       ko: ksl
       en: asl

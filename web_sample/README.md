@@ -1,6 +1,6 @@
-# MJ Sign — Web Sample Technical Guide
+# LinguaSign — Web Sample Technical Guide
 
-이 문서는 `mj_sign` 프로젝트의 웹 샘플 데모에 대한 기술 가이드입니다. 이 샘플은 수어 인식 시스템이 웹 환경에서 어떻게 구성되고 사용자에게 시각화되는지를 보여주는 프리미엄 대시보드 예제입니다.
+이 문서는 LinguaSign 웹 샘플 데모에 대한 기술 가이드입니다. 이 샘플은 SignBridge 기반 수어 입력 시스템이 웹 환경에서 어떻게 구성되고 사용자에게 시각화되는지를 보여주는 프리미엄 대시보드 예제입니다.
 
 ---
 

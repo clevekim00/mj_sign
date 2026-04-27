@@ -49,7 +49,7 @@ class HttpInferenceGatewayTest {
         assertEquals("ko-KR", request.locale());
         assertEquals("ksl", request.sign_language());
         assertEquals("sign-gemma-ko", request.model_profile());
-        assertEquals("mj-sign-model-v1", request.protocol_version());
+        assertEquals("signbridge-model-v1", request.protocol_version());
     }
 
     @Test
@@ -62,7 +62,7 @@ class HttpInferenceGatewayTest {
 
         GpuInferenceRequest request = gateway.toRequest(
                 chunk,
-                new InferenceContext("en-US", "asl", "sign-gemma", "mj-sign-model-v1")
+                new InferenceContext("en-US", "asl", "sign-gemma", "signbridge-model-v1")
         );
 
         assertEquals("en-US", request.locale());

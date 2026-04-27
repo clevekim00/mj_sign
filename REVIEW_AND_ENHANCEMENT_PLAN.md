@@ -1,4 +1,4 @@
-# MJ Sign Review And Enhancement Plan
+# SignBridge Review And Enhancement Plan
 
 ## Review Summary
 

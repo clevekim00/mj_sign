@@ -13,9 +13,9 @@ SignGemma는 수어를 텍스트로 변환하기 위한 Gemma 계열 공개 모�
 
 이번 검토 기준으로 Google의 공개 Gemma 모델 페이지에서 공식 SignGemma
 모델 카드, 다운로드 가능한 weight 페이지, 정확한 landmark/input tensor
-명세는 확인하지 못했습니다. 따라서 MJ Sign은 공식 weight와 spec이 공개되기
-전까지 SignGemma를 profile 호환 서빙 대상으로 다루고, BE와 모델 사이의
-adapter 계약을 안정적으로 유지하는 전략을 채택합니다.
+명세는 확인하지 못했습니다. 따라서 SignBridge는 공식 weight와 spec이 공개되기
+전까지 SignGemma를 LinguaSign의 profile 호환 서빙 대상으로 다루고, BE와 모델
+사이의 adapter 계약을 안정적으로 유지하는 전략을 채택합니다.
 
 ## 공개 보도로 확인되는 내용
 
@@ -64,9 +64,9 @@ sign-language translation과 visual understanding을 언급하지만, SignGemma�
 MediaPipe landmark, raw video, image sequence, 또는 다른 vision representation
 중 무엇을 직접 소비하는지는 정의하지 않습니다.
 
-### MJ Sign 프로젝트 기준 계약
+### SignBridge 프로젝트 기준 계약
 
-MJ Sign은 현재 MediaPipe-style protobuf landmark contract를 표준 입력으로
+SignBridge는 현재 MediaPipe-style protobuf landmark contract를 표준 입력으로
 사용합니다.
 
 ```proto
@@ -95,7 +95,7 @@ MediaPipe 참고 자료:
 
 ## 이 저장소의 구현 판단
 
-공식 SignGemma weight와 spec이 공개되기 전까지 MJ Sign은
+공식 SignGemma weight와 spec이 공개되기 전까지 SignBridge는
 `model_profile=sign-gemma`를 English/ASL 호환 serving profile로 취급합니다.
 
 | 항목 | 값 |
@@ -103,7 +103,7 @@ MediaPipe 참고 자료:
 | `locale` | `en-US` |
 | `sign_language` | `asl` |
 | `model_profile` | `sign-gemma` |
-| `protocol_version` | `mj-sign-model-v1` |
+| `protocol_version` | `signbridge-model-v1` (`mj-sign-model-v1`은 legacy alias) |
 | 입력 transport | `protobuf-b64` |
 | 입력 schema | `mj.sign.ClientStreamChunk` |
 | landmark schema | `left_hand`, `right_hand`, `pose`, `face_contour` |

@@ -15,7 +15,7 @@ class SignLanguageResolverTest {
         assertEquals("en-US", context.locale());
         assertEquals("asl", context.sign_language());
         assertEquals("sign-gemma", context.model_profile());
-        assertEquals("mj-sign-model-v1", context.protocol_version());
+        assertEquals("signbridge-model-v1", context.protocol_version());
     }
 
     @Test
@@ -28,5 +28,14 @@ class SignLanguageResolverTest {
         assertEquals("asl", context.sign_language());
         assertEquals("custom-english-model", context.model_profile());
         assertEquals("mj-sign-model-v2", context.protocol_version());
+    }
+
+    @Test
+    void canonicalizesLegacyProtocolVersion() {
+        SignLanguageResolver resolver = new SignLanguageResolver(new SignLanguageProperties());
+
+        InferenceContext context = resolver.resolve("en-US", null, null, "mj-sign-model-v1");
+
+        assertEquals("signbridge-model-v1", context.protocol_version());
     }
 }

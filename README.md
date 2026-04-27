@@ -1,6 +1,8 @@
-# MJ Sign
+# SignBridge
 
-MJ Sign은 수어 입력을 앱과 웹 서비스에 붙일 수 있도록 만드는 크로스 플랫폼 수어 인식 프로토타입입니다. Flutter 입력 위젯이 손/포즈/얼굴 landmark frame을 WebSocket protobuf로 전송하고, Spring Boot Sign Bridge가 세션 버퍼링, idle timeout flush, GPU serving provider 라우팅, queue worker 흐름, LLM 문장 보정을 담당합니다.
+SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입력 플랫폼입니다. SignInputKit SDK가 손/포즈/얼굴 landmark frame을 WebSocket protobuf로 전송하고, Spring Boot SignBridge backend가 세션 버퍼링, idle timeout flush, GPU serving provider 라우팅, queue worker 흐름, LLM 문장 보정을 담당합니다.
+
+> 브랜딩 기준: 프로젝트/플랫폼명은 **SignBridge**, 홍보용 제품명은 **LinguaSign**, SDK 브랜드는 **SignInputKit**입니다. 현재 Flutter package 이름은 호환성을 위해 `slr_input_kit`으로 유지합니다.
 
 - [English README](./README_en.md)
 - [한국어 상세 문서](./README_ko.md)
@@ -14,9 +16,9 @@ MJ Sign은 수어 입력을 앱과 웹 서비스에 붙일 수 있도록 만드�
 - [LLM Integration Prompt](./PROMPT_LLM_INTEGRATION.md)
 - [개선 계획 및 리뷰](./REVIEW_AND_ENHANCEMENT_PLAN.md)
 
-## 왜 MJ Sign인가
+## 왜 SignBridge인가
 
-- 수어 입력을 일반 텍스트 필드처럼 붙일 수 있는 `SlrInputWidget` 중심 구조입니다.
+- 수어 입력을 일반 텍스트 필드처럼 붙일 수 있는 SignInputKit의 `SlrInputWidget` 중심 구조입니다.
 - Android, iOS, iPad, Web, Windows, macOS/OSX, Linux 샘플 흐름을 한 예제 앱에서 비교할 수 있습니다.
 - 실제 GPU serving 전까지 `sign_gemma_mock`으로 WebSocket, queue, serializer/converter, metrics 경로를 검증할 수 있습니다.
 - `http`, `grpc`, `queue` provider 분기와 Kafka/RabbitMQ transport 골격이 있어 운영 구조로 확장하기 쉽습니다.
@@ -26,7 +28,7 @@ MJ Sign은 수어 입력을 앱과 웹 서비스에 붙일 수 있도록 만드�
 
 ```mermaid
 graph TD
-    A["Flutter app / slr_input_kit"] -->|"protobuf landmark frames over WebSocket"| B["Spring Boot Sign Bridge"]
+    A["SignInputKit SDK / slr_input_kit"] -->|"protobuf landmark frames over WebSocket"| B["Spring Boot SignBridge backend"]
     B --> C["Session buffer + idle timeout flush"]
     C --> D["Async inference dispatcher"]
     D --> E{"Inference provider"}
@@ -47,7 +49,7 @@ graph TD
 
 ## 저장소 구성
 
-- `slr_input_kit/`: Flutter 수어 입력 패키지, Sign Bridge client, protobuf model, 플랫폼별 샘플 앱
+- `slr_input_kit/`: SignInputKit SDK의 현재 Flutter package, SignBridge client, protobuf model, 플랫폼별 샘플 앱
 - `sign_bridge/`: Spring Boot WebSocket bridge, provider routing, async buffer, queue worker, health/readiness/metrics, LLM translation API
 - `sign_gemma_mock/`: FastAPI 기반 mock GPU serving backend
 - `schema/`: Flutter, Java, Python이 공유하는 protobuf schema
@@ -209,4 +211,4 @@ dart analyze slr_input_kit
 
 ## 현재 상태
 
-MJ Sign은 단순 로컬 FFI 실험이 아니라, 크로스 플랫폼 수어 입력 UI와 클라우드/edge GPU serving bridge를 연결하는 구조로 발전했습니다. 다음 단계는 실제 landmark extractor와 실제 GPU 모델 serving을 붙여 demo landmark source를 제품 수준 입력 파이프라인으로 교체하는 것입니다.
+SignBridge는 단순 로컬 FFI 실험이 아니라, 크로스 플랫폼 수어 입력 UI와 클라우드/edge GPU serving bridge를 연결하는 구조로 발전했습니다. 다음 단계는 실제 landmark extractor와 실제 GPU 모델 serving을 붙여 demo landmark source를 LinguaSign 제품 수준 입력 파이프라인으로 교체하는 것입니다.

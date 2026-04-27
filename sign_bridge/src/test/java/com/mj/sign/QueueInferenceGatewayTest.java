@@ -40,7 +40,7 @@ class QueueInferenceGatewayTest {
 
         TranslationResult result = gateway.sendForInference(
                 ClientStreamChunk.newBuilder().setSessionId("queue-session").build(),
-                new InferenceContext("en-US", "asl", "sign-gemma", "mj-sign-model-v1")
+                new InferenceContext("en-US", "asl", "sign-gemma", "signbridge-model-v1")
         );
 
         assertEquals("queue-session", result.getSessionId());

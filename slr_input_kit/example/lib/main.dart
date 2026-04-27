@@ -19,7 +19,7 @@ class SlrInputKitSampleApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MJ Sign Platform Samples',
+      title: 'LinguaSign Platform Samples',
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: surface,
@@ -255,7 +255,7 @@ class _HeroCard extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  'MJ Sign samples',
+                  'LinguaSign samples',
                   style: textTheme.titleMedium?.copyWith(
                     color: Colors.white70,
                     letterSpacing: 1.2,

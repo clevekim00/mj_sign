@@ -1,20 +1,20 @@
-# MJ Sign 프로젝트 소개서
+# LinguaSign 제품 소개서
 
 English version: [PROJECT_PROMOTION_EN.md](./PROJECT_PROMOTION_EN.md)
 
 ## 한 줄 소개
 
-MJ Sign은 수어를 앱, 웹, 데스크톱 입력 경험으로 연결하고, 언어별 Sign Gemma profile로 확장할 수 있는 크로스 플랫폼 수어 인식 브릿지입니다.
+LinguaSign은 SignBridge 플랫폼 기반으로 수어를 앱, 웹, 데스크톱 입력 경험에 연결하고, 언어별 Sign Gemma profile로 확장할 수 있는 크로스 플랫폼 수어 입력 제품입니다.
 
 ## 문제 정의
 
 많은 디지털 서비스는 음성 입력과 키보드 입력을 기본으로 제공하지만, 수어 사용자를 위한 자연스러운 입력 경로는 아직 부족합니다. 수어 인식은 카메라, landmark 추출, 실시간 추론, 문장 보정, 운영 안정성까지 모두 연결되어야 하므로 단일 앱 기능으로 끝나기 어렵습니다.
 
-MJ Sign은 이 문제를 “입력 위젯 + 클라우드/edge 브릿지 + GPU serving + LLM 보정” 구조로 분리해, 여러 플랫폼에서 같은 수어 입력 경험을 재사용할 수 있게 합니다.
+SignBridge는 이 문제를 “SignInputKit SDK + 클라우드/edge 브릿지 + GPU serving + LLM 보정” 구조로 분리해, LinguaSign이 여러 플랫폼에서 같은 수어 입력 경험을 재사용할 수 있게 합니다.
 
 ## 핵심 가치
 
-- 앱 개발자는 `SlrInputWidget`을 붙이는 방식으로 수어 입력 UI를 빠르게 실험할 수 있습니다.
+- 앱 개발자는 SignInputKit SDK의 `SlrInputWidget`을 붙이는 방식으로 수어 입력 UI를 빠르게 실험할 수 있습니다.
 - 모델 개발자는 HTTP, gRPC, queue provider 중 하나로 GPU serving backend를 교체할 수 있습니다.
 - 운영자는 health, readiness, metrics, queue retry/DLQ 정책을 기준으로 배포 안정성을 점검할 수 있습니다.
 - 사용자는 원시 키워드가 아니라 LLM으로 다듬어진 자연스러운 문장을 받을 수 있습니다.
@@ -24,18 +24,18 @@ MJ Sign은 이 문제를 “입력 위젯 + 클라우드/edge 브릿지 + GPU se
 
 1. 사용자가 채팅창이나 검색창 옆 수어 입력 아이콘을 누릅니다.
 2. Flutter 입력 위젯이 카메라에서 손/포즈/얼굴 landmark frame을 추출합니다.
-3. Landmark batch가 WebSocket protobuf로 Sign Bridge에 전달됩니다.
-4. Sign Bridge가 세션 단위로 frame을 모으고 idle timeout 시점에 추론을 flush합니다.
+3. Landmark batch가 WebSocket protobuf로 SignBridge에 전달됩니다.
+4. SignBridge가 세션 단위로 frame을 모으고 idle timeout 시점에 추론을 flush합니다.
 5. GPU serving backend가 수어 키워드 또는 문장을 반환합니다.
 6. LLM refinement layer가 final 결과를 사용자의 언어 context에 맞는 자연스러운 문장으로 보정합니다.
 7. 앱은 최종 텍스트를 입력창에 반영합니다.
 
 ## English/ASL Sign Gemma Profile
 
-MJ Sign은 영어 기반 수어 입력을 위해 `locale=en-US`, `sign_language=asl`, `model_profile=sign-gemma` 조합을 표준 profile로 둡니다.
+SignBridge는 영어 기반 LinguaSign 수어 입력을 위해 `locale=en-US`, `sign_language=asl`, `model_profile=sign-gemma` 조합을 표준 profile로 둡니다.
 
 - Flutter client는 platform locale 또는 앱이 제공한 `SignLanguageContext`를 WebSocket query로 전달합니다.
-- Sign Bridge는 이 값을 `InferenceContext`로 정규화해 HTTP, queue, future gRPC provider에 동일하게 넘깁니다.
+- SignBridge는 이 값을 `InferenceContext`로 정규화해 HTTP, queue, future gRPC provider에 동일하게 넘깁니다.
 - Mock GPU 서버는 `sign-gemma` profile registry를 통해 English/ASL mock response, model metadata, supported landmarks를 제공합니다.
 - `/health`와 `/ready`는 profile 목록, 로드 상태, LoRA weight 설정 여부, 지원 landmark contract를 반환합니다.
 - `scripts/verify_english_asl_profile.sh`로 WebSocket부터 BE, mock GPU, profile echo까지 end-to-end 검증할 수 있습니다.
@@ -67,7 +67,7 @@ MJ Sign은 영어 기반 수어 입력을 위해 `locale=en-US`, `sign_language=
 
 ## Landmark Contract
 
-공식 SignGemma의 정확한 입력 landmark spec은 아직 공개 model card로 확인되지 않았습니다. 따라서 MJ Sign은 현재 제품/연구 구현 기준으로 MediaPipe-style protobuf landmark contract를 채택합니다.
+공식 SignGemma의 정확한 입력 landmark spec은 아직 공개 model card로 확인되지 않았습니다. 따라서 SignBridge는 현재 제품/연구 구현 기준으로 MediaPipe-style protobuf landmark contract를 채택합니다.
 
 | 입력 필드 | 현재 지원 범위 | 목적 |
 | --- | --- | --- |
@@ -135,4 +135,4 @@ English/ASL profile만 빠르게 확인하려면 `docker-compose.stack.http.yml`
 
 ## 메시지
 
-MJ Sign의 목표는 “수어 인식 모델 하나 만들기”에서 끝나지 않습니다. 실제 사용자가 여러 기기에서 수어를 입력하고, 서비스가 안정적으로 받아들이고, 자연스러운 문장으로 이어주는 전체 경로를 만드는 것이 목표입니다.
+LinguaSign의 목표는 “수어 인식 모델 하나 만들기”에서 끝나지 않습니다. 실제 사용자가 여러 기기에서 수어를 입력하고, SignBridge가 안정적으로 받아들이고, 자연스러운 문장으로 이어주는 전체 경로를 만드는 것이 목표입니다.

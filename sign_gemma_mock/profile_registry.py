@@ -9,6 +9,18 @@ SUPPORTED_LANDMARKS = [
     "face_contour:variable_lip_jaw_3d",
 ]
 
+DEFAULT_PROTOCOL_VERSION = "signbridge-model-v1"
+LEGACY_PROTOCOL_VERSION = "mj-sign-model-v1"
+
+
+def normalize_protocol_version(protocol_version: str | None) -> str:
+    if not protocol_version:
+        return DEFAULT_PROTOCOL_VERSION
+    normalized = protocol_version.strip().lower()
+    if normalized == LEGACY_PROTOCOL_VERSION:
+        return DEFAULT_PROTOCOL_VERSION
+    return normalized
+
 
 @dataclass(frozen=True)
 class SignGemmaProfile:
@@ -22,7 +34,8 @@ class SignGemmaProfile:
     output_mode: str = "sentence"
     input_schema: str = "mj.sign.ClientStreamChunk"
     input_schema_version: str = "v1"
-    protocol_version: str = "mj-sign-model-v1"
+    protocol_version: str = DEFAULT_PROTOCOL_VERSION
+    legacy_protocol_versions: tuple[str, ...] = (LEGACY_PROTOCOL_VERSION,)
     transport: str = "protobuf-b64"
     min_frames: int = 8
     max_frames: int = 24
@@ -47,6 +60,7 @@ class SignGemmaProfile:
             "input_schema": self.input_schema,
             "input_schema_version": self.input_schema_version,
             "protocol_version": self.protocol_version,
+            "legacy_protocol_versions": list(self.legacy_protocol_versions),
             "transport": self.transport,
             "min_frames": self.min_frames,
             "max_frames": self.max_frames,

@@ -313,7 +313,7 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Sign Bridge Stream',
+                    'SignBridge Stream',
                     style: theme.textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
