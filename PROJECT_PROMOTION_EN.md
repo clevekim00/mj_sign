@@ -6,7 +6,7 @@ Korean version: [PROJECT_PROMOTION_KO.md](./PROJECT_PROMOTION_KO.md)
 
 LinguaSign is a cross-platform sign language input product powered by the
 SignBridge platform. It connects sign input to mobile, web, desktop, and backend
-services while leaving room for language-specific Sign Gemma-compatible model
+services while leaving room for language-specific SignGemma-compatible model
 profiles.
 
 ## Problem
@@ -23,16 +23,25 @@ GPU-serving adapters, queue workers, and an optional LLM refinement layer.
 ## Core Value
 
 - App teams can experiment with sign input by embedding SignInputKit's `SlrInputWidget`.
-- Model teams can swap GPU serving behind HTTP, gRPC, or queue providers.
+- Model teams can attach language-specific sign models behind the same SignBridge connection pattern.
 - Operations teams get health, readiness, metrics, retry, and DLQ patterns.
-- Users receive refined natural-language text instead of raw recognition tokens.
-- Product teams can separate locale, sign language, and model profile, such as
-  Korean/KSL or English/ASL, while keeping the backend SPI stable.
+- Users receive context-aware natural-language text instead of raw recognition tokens.
+- Product teams can start with Korean/KSL and extend to English/ASL or other locale/sign-language combinations with the same structure.
+
+## Current Demo And Product Target
+
+The current local demo uses `DemoLandmarkFrameSource` instead of a real camera
+extractor to validate the SignBridge connection, protobuf streaming, idle flush,
+mock GPU response, and language profile echo.
+
+The product target is to replace `DemoLandmarkFrameSource` with a real
+camera/MediaPipe-style landmark extractor and attach SignGemma-compatible or
+official SignGemma weights to the relevant GPU serving profile.
 
 ## Product Flow
 
 1. A user taps the sign input icon next to a chat box, search box, or form field.
-2. The Flutter input widget captures hand, pose, and face landmark frames.
+2. In production, the Flutter input widget captures hand, pose, and face landmark frames.
 3. Landmark batches are sent to SignBridge over WebSocket protobuf.
 4. SignBridge buffers frames per session and flushes inference on idle timeout.
 5. A GPU serving backend returns sign keywords or a draft sentence.
@@ -40,17 +49,21 @@ GPU-serving adapters, queue workers, and an optional LLM refinement layer.
    current language context.
 7. The app inserts the final text into the target input field.
 
-## English/ASL Sign Gemma Profile
+## Language Model Strategy
 
-SignBridge standardizes English LinguaSign input around
-`locale=en-US`, `sign_language=asl`, and `model_profile=sign-gemma`.
+SignBridge separates locale, sign language, and model profile. Korean service
+flows use `locale=ko-KR`, `sign_language=ksl`, and
+`model_profile=sign-gemma-ko` as the default profile. English expansion uses
+`locale=en-US`, `sign_language=asl`, and `model_profile=sign-gemma` as a
+SignGemma-compatible profile.
 
 - The Flutter client passes platform locale or app-provided `SignLanguageContext`
   through WebSocket query parameters.
 - SignBridge normalizes the values into `InferenceContext` and forwards the same
   context through HTTP, queue, and future gRPC providers.
-- The mock GPU server exposes English/ASL metadata, supported landmarks, and mock
-  responses through the `sign-gemma` profile registry.
+- The mock GPU server exposes Korean/KSL and English/ASL metadata, supported
+  landmarks, and mock responses through the `sign-gemma-ko` and `sign-gemma`
+  profile registries.
 - `/health` and `/ready` return profile lists, model load state, LoRA weight
   configuration, and supported landmark contracts.
 - `scripts/verify_english_asl_profile.sh` validates the WebSocket-to-bridge-to-
@@ -73,23 +86,34 @@ SignBridge standardizes English LinguaSign input around
 - WebSocket protobuf keeps frame payloads compact and explicit.
 - Session buffering and idle-timeout flush group short gesture fragments into
   inference windows.
-- `InferenceContext` standardizes locale, sign language, and model profile while
-  keeping the backend SPI language independent.
-- English input is routed to ASL and the `sign-gemma` profile by default.
-- The mock GPU server separates `sign-gemma` and `sign-gemma-ko` profiles so real
+- `InferenceContext` standardizes locale, sign language, and model profile so new
+  language models can be added through the same connection pattern.
+- The mock GPU server separates `sign-gemma-ko` and `sign-gemma` profiles so real
   model IDs, checkpoints, or LoRA paths can be introduced per profile later.
-- HTTP is ready for quick mock or real serving integration.
-- Queue provider support is ready for Kafka/RabbitMQ-style asynchronous workers.
-- Worker consumers cover request consumption and result publication paths for
-  local integration testing.
-- Readiness checks reflect provider health, making it easier to distinguish
-  "app process is up" from "model backend is ready."
+- HTTP is ready for quick mock or real serving checks, while Kafka/RabbitMQ queue
+  paths are ready for asynchronous worker expansion.
+- Readiness checks distinguish "the app process is up" from "the model backend
+  is ready."
+- The phase 1 T2S/STS contract returns `SignPlan + landmark motion`, allowing
+  text/speech-to-sign playback validation before a production generator is ready.
+
+## Developer Notes
+
+- API/SPI references and the language model onboarding guide are separated so new
+  sign models can be attached without reshaping provider or transport code.
+- Queue workers are structured so request consumption and result publication can
+  be validated in local integration flows.
+- Keeping the BE-model envelope and adapter layer stable lets the app and
+  SignBridge API remain steady even when model weights or serving backends change.
+- T2S/STS architecture is documented separately in `SIGN_SYNTHESIS_DESIGN.md`
+  and `SIGN_SYNTHESIS_DESIGN_KO.md`.
 
 ## Landmark Contract
 
 The exact official SignGemma input landmark specification has not been verified
-from a public model card yet. SignBridge therefore uses a MediaPipe-style protobuf
-contract at the adapter boundary.
+from a public model card yet. During the current mock/profile contract validation
+stage, SignBridge uses a MediaPipe-style protobuf contract at the adapter
+boundary.
 
 | Input field | Current support | Purpose |
 | --- | --- | --- |
@@ -100,7 +124,8 @@ contract at the adapter boundary.
 
 When official SignGemma weights and input schemas become available, SignBridge can
 adapt this contract inside the model adapter while preserving the backend-model
-envelope.
+envelope. Until then, the `sign-gemma` profile is treated as a
+SignGemma-compatible serving contract validation profile.
 
 ## Demo
 
@@ -125,16 +150,19 @@ cd slr_input_kit/example
 flutter run
 ```
 
-Validate profile and broker flows:
+For a quick HTTP integrated stack check:
 
 ```bash
+docker compose -f docker-compose.stack.http.yml up -d
 ./scripts/verify_english_asl_profile.sh
+```
+
+Validate Kafka or RabbitMQ worker flows:
+
+```bash
 ./scripts/verify_kafka_stack.sh
 ./scripts/verify_rabbitmq_stack.sh
 ```
-
-For a quick English/ASL HTTP-stack check, use the local stack described by
-`docker-compose.stack.http.yml`.
 
 ## Use Cases
 
@@ -148,24 +176,27 @@ For a quick English/ASL HTTP-stack check, use the local stack described by
 ## Current Maturity And Gaps
 
 SignBridge currently includes the bridge, provider routing, mock GPU server,
-English/ASL `sign-gemma` profile registry, profile-aware health/readiness,
-queue worker contract, broker serializer/converter settings, and a platform
-sample gallery.
+Korean/KSL `sign-gemma-ko` and English/ASL `sign-gemma` profile registries,
+profile-aware health/readiness, queue worker contract, broker serializer/converter
+settings, a platform sample gallery, and a mock T2S/STS synthesis contract with
+playback stubs.
 
 To reach production readiness, the project still needs a real landmark
 extractor, official SignGemma or SignGemma-compatible ASL model serving,
-authenticated WSS endpoints, privacy policy work, operational dashboards, and
-dataset-backed evaluation.
+real ASR/T2S model serving, authenticated WSS endpoints, privacy policy work,
+operational dashboards, and dataset-backed evaluation.
 
 ## Next Priorities
 
 1. Replace `DemoLandmarkFrameSource` with a real camera landmark extractor.
 2. Connect official SignGemma or SignGemma-compatible ASL weights to the
    `sign-gemma` profile.
-3. Attach a real GPU serving backend behind HTTP or queue workers.
-4. Harden Web, iOS, and Android camera permission and lifecycle handling.
-5. Add TLS, authentication, session policy, and metrics dashboards.
-6. Document datasets, evaluation metrics, and user feedback loops.
+3. Attach an STS ASR adapter and a real T2S sign generation provider behind
+   `signbridge-synthesis-v1`.
+4. Attach a real GPU serving backend behind HTTP or queue workers.
+5. Harden Web, iOS, and Android camera permission and lifecycle handling.
+6. Add TLS, authentication, session policy, and metrics dashboards.
+7. Document datasets, evaluation metrics, and user feedback loops.
 
 ## Message
 

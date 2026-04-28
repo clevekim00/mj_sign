@@ -11,6 +11,8 @@ keeping the SignBridge backend contract identical.
 - Platform-specific bridge URLs and execution commands.
 - A deterministic demo landmark source that exercises the protobuf streaming
   contract without requiring a real camera extractor.
+- `SignOutputWidget` and `SignSynthesisResult.fromJson` for phase 1
+  Text/Speech-to-Sign landmark playback.
 - Production notes for replacing the demo source with camera or MediaPipe style
   landmark extraction.
 - Responsive UI behavior for phone, tablet, desktop, and browser layouts.
@@ -95,6 +97,8 @@ The backend API/SPI and model protocol are documented in the repository root:
 - `API_SPI_REFERENCE.md`
 - `MODEL_PROTOCOL.md`
 - `LANGUAGE_MODEL_GUIDE.md`
+- `SIGN_SYNTHESIS_DESIGN.md`
+- `SIGN_SYNTHESIS_DESIGN_KO.md`
 
 If your host app can read the active keyboard or input-method language, pass it
 explicitly:
@@ -127,3 +131,21 @@ CameraLandmarkFrameSource(
 
 Keep frame batches small, throttle to a stable FPS, and let the bridge idle
 flush collect enough context before final inference.
+
+## Text/Speech-to-Sign Playback
+
+The SDK now exports a lightweight playback stub for synthesis results:
+
+```dart
+final result = SignSynthesisResult.fromJson(responseJson);
+
+SignOutputWidget(
+  frames: result.frames,
+  placeholder: 'T2S/STS motion을 기다리는 중입니다.',
+)
+```
+
+The current backend returns mock `SignPlan + landmark motion` through
+`POST /api/v2/sign/synthesize` and `POST /api/v2/speech/sign`. A production app
+can keep this widget while replacing the backend mock with an ASR adapter,
+language-specific sign planner, and real motion generator.

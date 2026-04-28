@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Settings, MessageSquare, Activity, ShieldCheck } from 'lucide-react';
 import { SignBridgeClient, SignMLService } from './services/signService';
+import { SignSynthesisPreview } from './components/SignSynthesisPreview';
+import { SignSynthesisHttpClient, type SignSynthesisResult } from './services/signSynthesisService';
 import './index.css';
 
 const SESSION_ID = `web-${Math.random().toString(36).substr(2, 9)}`;
@@ -13,11 +15,15 @@ const App: React.FC = () => {
   const [bridgeStatus, setBridgeStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isSignMode, setIsSignMode] = useState(false);
+  const [synthesisResult, setSynthesisResult] = useState<SignSynthesisResult | null>(null);
+  const [synthesisError, setSynthesisError] = useState('');
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mlService = useRef(new SignMLService());
   const bridgeClient = useRef(new SignBridgeClient());
+  const synthesisClient = useRef(new SignSynthesisHttpClient());
 
   useEffect(() => {
     bridgeClient.current.onResult((data) => {
@@ -109,6 +115,28 @@ const App: React.FC = () => {
         ctx.fill();
       });
     });
+  };
+
+  const synthesizeMessage = async () => {
+    const text = message.trim();
+    if (!text) return;
+
+    setIsSynthesizing(true);
+    setSynthesisError('');
+    try {
+      const result = await synthesisClient.current.synthesizeText({
+        session_id: `${SESSION_ID}-t2s`,
+        text,
+        locale: 'ko-KR',
+        sign_language: 'ksl',
+        model_profile: 'sign-gemma-ko',
+      });
+      setSynthesisResult(result);
+    } catch (err: any) {
+      setSynthesisError(err?.message ?? String(err));
+    } finally {
+      setIsSynthesizing(false);
+    }
   };
 
   const SignHandIcon = () => (
@@ -279,11 +307,15 @@ const App: React.FC = () => {
                  <span>Session ID:</span>
                  <span className="font-mono text-[10px]">{SESSION_ID}</span>
                </div>
-               <button className="w-full py-4 glass-panel hover:bg-white/5 transition-all text-sm font-bold text-blue-400">
+              <button className="w-full py-4 glass-panel hover:bg-white/5 transition-all text-sm font-bold text-blue-400">
                 기록 분석 대시보드
               </button>
             </div>
           </div>
+          <SignSynthesisPreview
+            result={synthesisResult}
+            placeholder={synthesisError || '메시지를 입력하고 전송하면 mock T2S motion을 재생합니다.'}
+          />
         </motion.section>
       </main>
 
@@ -319,7 +351,12 @@ const App: React.FC = () => {
             <SignHandIcon />
           </button>
 
-          <button className="p-3.5 bg-blue-600 hover:bg-blue-500 rounded-2xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 ml-1">
+          <button
+            onClick={synthesizeMessage}
+            disabled={isSynthesizing || message.trim().length === 0}
+            className="p-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-2xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 ml-1"
+            title="Text to Sign synthesis"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 14-7-1.5 14L11 17l-4 4V11L5 12z"/></svg>
           </button>
         </div>

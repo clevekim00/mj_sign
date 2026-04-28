@@ -171,6 +171,67 @@ Compatibility requirements:
 Detailed onboarding steps for new language models are in
 [LANGUAGE_MODEL_GUIDE.md](./LANGUAGE_MODEL_GUIDE.md).
 
+## Sign Synthesis Protocol
+
+T2S(Text-to-Sign) and STS(Speech-to-Sign) use a separate protocol version:
+
+```text
+signbridge-synthesis-v1
+```
+
+The S2T recognition protocol remains `signbridge-model-v1`. Synthesis responses
+return `SignPlan + motion` instead of sentence text only.
+
+Synthesis request:
+
+```json
+{
+  "session_id": "t2s-ko-demo",
+  "source_type": "text",
+  "text": "내일 병원에 가야 합니다.",
+  "transcript": null,
+  "audio_b64": null,
+  "locale": "ko-KR",
+  "sign_language": "ksl",
+  "model_profile": "sign-gemma-ko",
+  "output_format": "landmarks",
+  "protocol_version": "signbridge-synthesis-v1"
+}
+```
+
+Synthesis response:
+
+```json
+{
+  "session_id": "t2s-ko-demo",
+  "event_type": "synthesis_result",
+  "source_type": "text",
+  "text": "내일 병원에 가야 합니다.",
+  "locale": "ko-KR",
+  "sign_language": "ksl",
+  "model_profile": "sign-gemma-ko",
+  "protocol_version": "signbridge-synthesis-v1",
+  "sign_plan": {
+    "glosses": ["내일", "병원", "가다"],
+    "non_manual_markers": ["neutral"],
+    "grammar_note": "Mock KSL-compatible gloss order. Replace with a language-specific planner before production."
+  },
+  "motion": {
+    "format": "landmark-frames",
+    "fps": 12,
+    "frame_count": 24,
+    "frames": []
+  },
+  "is_final": true,
+  "confidence": 0.82,
+  "error": null
+}
+```
+
+See [SIGN_SYNTHESIS_DESIGN.md](./SIGN_SYNTHESIS_DESIGN.md) and
+[SIGN_SYNTHESIS_DESIGN_KO.md](./SIGN_SYNTHESIS_DESIGN_KO.md) for the full
+T2S/STS architecture.
+
 ## LLM Refinement
 
 The LLM refinement layer uses the same `InferenceContext`.

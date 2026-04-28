@@ -10,6 +10,8 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 - [Project Promotion (EN)](./PROJECT_PROMOTION_EN.md)
 - [API / SPI Reference](./API_SPI_REFERENCE.md)
 - [BE-Model 표준 프로토콜](./MODEL_PROTOCOL.md)
+- [T2S / STS Synthesis Design (KO)](./SIGN_SYNTHESIS_DESIGN_KO.md)
+- [T2S / STS Synthesis Design (EN)](./SIGN_SYNTHESIS_DESIGN.md)
 - [언어별 모델 추가 가이드](./LANGUAGE_MODEL_GUIDE.md)
 - [SignGemma 조사 노트 (KO)](./SIGN_GEMMA_RESEARCH_KO.md)
 - [SignGemma Research Notes (EN)](./SIGN_GEMMA_RESEARCH.md)
@@ -67,6 +69,8 @@ graph TD
 - Kafka/RabbitMQ serializer, converter, worker consumer, result publication path
 - 운영 endpoint: `GET /internal/healthz`, `GET /internal/readyz`, `GET /internal/metrics`
 - Gemma 2/Ollama 기반 `POST /api/v2/translate` LLM 문장 보정
+- T2S/STS 1차 계약: `POST /api/v2/sign/synthesize`, `POST /api/v2/speech/sign`, mock `SignPlan + landmark motion`
+- Flutter `SignOutputWidget` 및 Web `SignSynthesisPreview` 기반 synthesis playback stub
 
 ## 빠른 시작
 

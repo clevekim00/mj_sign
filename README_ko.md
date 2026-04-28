@@ -11,6 +11,7 @@
 - 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md)
 - API / SPI Reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
 - BE-Model 표준 프로토콜: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
+- T2S / STS 설계 문서: [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md) / [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md)
 - 언어별 모델 추가 가이드: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
 - SignGemma 조사 노트: [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md) / [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)
 
@@ -54,6 +55,10 @@ graph TD
   - `GET /internal/healthz`
   - `GET /internal/readyz`
   - `GET /internal/metrics`
+- T2S/STS 1차 계약
+  - `POST /api/v2/sign/synthesize`
+  - `POST /api/v2/speech/sign`
+  - mock `SignPlan + landmark motion` 및 Flutter/Web playback stub
 
 ## Provider 구조
 

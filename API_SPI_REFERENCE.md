@@ -128,6 +128,68 @@ POST /api/v2/translate
 - 실시간 inference flow에서는 final/high-confidence/non-system 결과에만 LLM refinement가 적용됩니다.
 - 언어별 prompt는 `InferenceContext`의 `locale`, `sign_language`를 기준으로 선택됩니다.
 
+### Text/Speech-to-Sign Synthesis API
+
+설계 문서:
+
+- [SIGN_SYNTHESIS_DESIGN_KO.md](./SIGN_SYNTHESIS_DESIGN_KO.md)
+- [SIGN_SYNTHESIS_DESIGN.md](./SIGN_SYNTHESIS_DESIGN.md)
+
+Endpoints:
+
+| Method | Path | 목적 |
+| --- | --- | --- |
+| `POST` | `/api/v2/sign/synthesize` | text를 `SignPlan + landmark motion`으로 변환 |
+| `POST` | `/api/v2/speech/sign` | speech transcript 또는 mock audio placeholder를 `SignPlan + landmark motion`으로 변환 |
+
+Request envelope:
+
+```json
+{
+  "session_id": "t2s-ko-demo",
+  "source_type": "text",
+  "text": "내일 병원에 가야 합니다.",
+  "transcript": null,
+  "audio_b64": null,
+  "locale": "ko-KR",
+  "sign_language": "ksl",
+  "model_profile": "sign-gemma-ko",
+  "output_format": "landmarks",
+  "protocol_version": "signbridge-synthesis-v1"
+}
+```
+
+Response envelope:
+
+```json
+{
+  "session_id": "t2s-ko-demo",
+  "event_type": "synthesis_result",
+  "source_type": "text",
+  "text": "내일 병원에 가야 합니다.",
+  "locale": "ko-KR",
+  "sign_language": "ksl",
+  "model_profile": "sign-gemma-ko",
+  "protocol_version": "signbridge-synthesis-v1",
+  "sign_plan": {
+    "glosses": ["내일", "병원", "가다"],
+    "non_manual_markers": ["neutral"],
+    "grammar_note": "Mock KSL-compatible gloss order. Replace with a language-specific planner before production."
+  },
+  "motion": {
+    "format": "landmark-frames",
+    "fps": 12,
+    "frame_count": 24,
+    "frames": []
+  },
+  "is_final": true,
+  "confidence": 0.82,
+  "error": null
+}
+```
+
+현재 구현은 mock synthesis service입니다. 실제 ASR/T2S/Avatar renderer는 `SignSynthesisService` 뒤에 `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider` SPI로 분리하는 것을 권장합니다.
+
 ## Operations API
 
 Endpoint:
@@ -229,6 +291,26 @@ QueueInferenceResult submitAndAwait(QueueInferenceTask task, Duration timeout)
 
 - queue worker가 받은 `GpuInferenceRequest`를 실제 model backend로 전달합니다.
 - worker consumer는 결과를 `GpuInferenceResponse`로 다시 publish합니다.
+
+### SignSynthesisService
+
+파일:
+
+- `sign_bridge/src/main/java/com/mj/sign/SignSynthesisService.java`
+- `sign_bridge/src/main/java/com/mj/sign/SignSynthesisController.java`
+
+표준 진입점:
+
+```java
+SignSynthesisResult synthesize(SignSynthesisRequest request)
+```
+
+1차 구현 규칙:
+
+- `protocol_version` 기본값은 `signbridge-synthesis-v1`입니다.
+- `text` 또는 `transcript`가 필요합니다.
+- `speech` source에서 `audio_b64`만 전달되면 실제 ASR 연결 전까지 mock transcript로 처리합니다.
+- response는 `SignPlan`과 `landmark-frames` motion을 항상 같은 shape으로 반환합니다.
 
 ## BE to Model API
 

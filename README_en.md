@@ -11,6 +11,7 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 - Promotional overview: [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md)
 - API / SPI reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
 - BE-model standard protocol: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
+- T2S / STS synthesis design: [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md) / [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md)
 - Language model onboarding guide: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
 - SignGemma research notes: [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md) / [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)
 
@@ -54,6 +55,10 @@ The project now includes an LLM-based refinement layer that transforms raw sign 
   - `GET /internal/healthz`
   - `GET /internal/readyz`
   - `GET /internal/metrics`
+- T2S/STS phase 1 contract
+  - `POST /api/v2/sign/synthesize`
+  - `POST /api/v2/speech/sign`
+  - mock `SignPlan + landmark motion` with Flutter/Web playback stubs
 
 ## Provider Model
 
