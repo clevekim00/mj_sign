@@ -188,7 +188,7 @@ Response envelope:
 }
 ```
 
-현재 구현은 mock synthesis service입니다. 실제 ASR/T2S/Avatar renderer는 `SignSynthesisService` 뒤에 `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider` SPI로 분리하는 것을 권장합니다.
+현재 구현은 `SignSynthesisService` 뒤에 `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider` SPI를 분리해 둔 상태입니다. 기본값은 mock 구현이며, `application-synthesis-http.properties` profile로 ASR/T2S 외부 HTTP provider를 연결할 수 있습니다.
 
 ## Operations API
 
@@ -298,6 +298,11 @@ QueueInferenceResult submitAndAwait(QueueInferenceTask task, Duration timeout)
 
 - `sign_bridge/src/main/java/com/mj/sign/SignSynthesisService.java`
 - `sign_bridge/src/main/java/com/mj/sign/SignSynthesisController.java`
+- `sign_bridge/src/main/java/com/mj/sign/SpeechToTextAdapter.java`
+- `sign_bridge/src/main/java/com/mj/sign/SignPlanner.java`
+- `sign_bridge/src/main/java/com/mj/sign/SignMotionGenerator.java`
+- `sign_bridge/src/main/java/com/mj/sign/SignSynthesisProvider.java`
+- `sign_bridge/src/main/resources/application-synthesis-http.properties`
 
 표준 진입점:
 
@@ -309,8 +314,28 @@ SignSynthesisResult synthesize(SignSynthesisRequest request)
 
 - `protocol_version` 기본값은 `signbridge-synthesis-v1`입니다.
 - `text` 또는 `transcript`가 필요합니다.
-- `speech` source에서 `audio_b64`만 전달되면 실제 ASR 연결 전까지 mock transcript로 처리합니다.
+- `speech` source에서 `audio_b64`만 전달되면 `SpeechToTextAdapter`가 transcript를 생성합니다.
 - response는 `SignPlan`과 `landmark-frames` motion을 항상 같은 shape으로 반환합니다.
+
+Synthesis SPI:
+
+| SPI | 기본 구현 | 실제 연동 포인트 |
+| --- | --- | --- |
+| `SpeechToTextAdapter` | `MockSpeechToTextAdapter` | `HttpSpeechToTextAdapter` |
+| `SignPlanner` | `DefaultSignPlanner` | 언어별 KSL/ASL planner |
+| `SignMotionGenerator` | `MockSignMotionGenerator` | skeleton/avatar generator |
+| `SignSynthesisProvider` | `MockSignSynthesisProvider` | `HttpSignSynthesisProvider` |
+
+HTTP provider 설정:
+
+```properties
+sign.synthesis.provider=http
+sign.synthesis.asr-provider=http
+sign.synthesis.base-url=http://localhost:8010
+sign.synthesis.asr-base-url=http://localhost:8011
+sign.synthesis.synthesize-path=/api/v2/sign/synthesize
+sign.synthesis.asr-path=/api/v2/speech/transcribe
+```
 
 ## BE to Model API
 

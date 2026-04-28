@@ -232,6 +232,37 @@ See [SIGN_SYNTHESIS_DESIGN.md](./SIGN_SYNTHESIS_DESIGN.md) and
 [SIGN_SYNTHESIS_DESIGN_KO.md](./SIGN_SYNTHESIS_DESIGN_KO.md) for the full
 T2S/STS architecture.
 
+External SignGemma-compatible T2S providers can be attached through the
+HTTP synthesis SPI:
+
+```properties
+sign.synthesis.provider=http
+sign.synthesis.base-url=http://localhost:8010
+sign.synthesis.synthesize-path=/api/v2/sign/synthesize
+```
+
+External ASR providers can be attached independently:
+
+```properties
+sign.synthesis.asr-provider=http
+sign.synthesis.asr-base-url=http://localhost:8011
+sign.synthesis.asr-path=/api/v2/speech/transcribe
+```
+
+The HTTP T2S provider should accept the synthesis request envelope above and
+return the synthesis response envelope unchanged. The HTTP ASR provider should
+return:
+
+```json
+{
+  "session_id": "sts-en-demo",
+  "transcript": "I need help tomorrow.",
+  "confidence": 0.91,
+  "provider": "external-asr",
+  "error": null
+}
+```
+
 ## LLM Refinement
 
 The LLM refinement layer uses the same `InferenceContext`.

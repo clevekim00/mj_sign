@@ -70,6 +70,7 @@ graph TD
 - 운영 endpoint: `GET /internal/healthz`, `GET /internal/readyz`, `GET /internal/metrics`
 - Gemma 2/Ollama 기반 `POST /api/v2/translate` LLM 문장 보정
 - T2S/STS 1차 계약: `POST /api/v2/sign/synthesize`, `POST /api/v2/speech/sign`, mock `SignPlan + landmark motion`
+- T2S/STS SPI: `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider`
 - Flutter `SignOutputWidget` 및 Web `SignSynthesisPreview` 기반 synthesis playback stub
 
 ## 빠른 시작

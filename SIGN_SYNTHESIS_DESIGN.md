@@ -125,18 +125,43 @@ The phase 1 implementation prefers `transcript`. If only `audio_b64` is provided
 
 ## Backend SPI
 
-The phase 1 implementation keeps the mock planner and mock motion generator inside `SignSynthesisService`. In production, split the flow behind these extension points:
+The phase 1 implementation now splits synthesis behind explicit backend SPI
+interfaces. `SignSynthesisService` normalizes language/session context and then
+delegates to ASR and synthesis providers.
 
 ```java
 SignSynthesisResult synthesize(SignSynthesisRequest request)
 ```
 
-Recommended extension points:
+Implemented extension points:
 
 - `SpeechToTextAdapter`: converts audio into transcript text.
 - `SignPlanner`: converts text/transcript into language-specific glosses, NMS, and timing plans.
 - `SignMotionGenerator`: converts the plan into landmark frames, skeleton frames, or avatar motion.
 - `SignSynthesisProvider`: abstracts local/mock/http/grpc/queue transports.
+
+Current implementations:
+
+| SPI | Mock/local implementation | External implementation |
+| --- | --- | --- |
+| `SpeechToTextAdapter` | `MockSpeechToTextAdapter` | `HttpSpeechToTextAdapter` |
+| `SignPlanner` | `DefaultSignPlanner` | Replace with language-specific planner |
+| `SignMotionGenerator` | `MockSignMotionGenerator` | Replace with avatar/skeleton generator |
+| `SignSynthesisProvider` | `MockSignSynthesisProvider` | `HttpSignSynthesisProvider` |
+
+Configuration:
+
+```properties
+sign.synthesis.provider=mock
+sign.synthesis.asr-provider=mock
+sign.synthesis.base-url=http://localhost:8010
+sign.synthesis.asr-base-url=http://localhost:8011
+sign.synthesis.synthesize-path=/api/v2/sign/synthesize
+sign.synthesis.asr-path=/api/v2/speech/transcribe
+```
+
+Use `application-synthesis-http.properties` to route both ASR and
+SignGemma-compatible T2S requests to external HTTP services.
 
 ## Language And Model Routing
 
@@ -170,7 +195,9 @@ Web:
 
 1. Freeze the API contract and playback stubs. This is the current phase 1 implementation.
 2. Add an ASR adapter for `audio_b64` or multipart audio.
-3. Extract the language-specific `SignPlanner` SPI and test KSL/ASL mock planners.
-4. Connect real T2S model providers behind `http/grpc/queue` transports.
+3. Add production ASR and language-specific planner implementations behind the
+   existing SPI.
+4. Connect real T2S model providers behind `http` first, then add `grpc/queue`
+   synthesis transports when model serving needs asynchronous scaling.
 5. Retarget landmark motion into 3D skeleton/avatar motion.
 6. Add Deaf reviewer evaluation sets and quality metrics.

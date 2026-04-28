@@ -66,7 +66,7 @@ SignBridge는 언어, 수어 체계, 모델 profile을 분리합니다. 한국�
 - Mock GPU는 `sign-gemma-ko`와 `sign-gemma`를 분리해 실제 weight가 준비되면 profile별 model id/LoRA path로 교체할 수 있습니다.
 - HTTP 연결은 빠른 mock/real serving 검증에 적합하고, Kafka/RabbitMQ queue 연결은 비동기 worker 확장에 적합합니다.
 - Readiness는 SignBridge와 모델 backend 상태를 구분하므로 “앱은 떴지만 모델은 준비 안 됨” 상태를 운영에서 확인할 수 있습니다.
-- T2S/STS 1차 계약을 분리해 텍스트/음성 입력을 `SignPlan + landmark motion`으로 돌려주는 playback 검증도 시작할 수 있습니다.
+- T2S/STS 1차 계약과 `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider` SPI를 분리해 텍스트/음성 입력을 `SignPlan + landmark motion`으로 돌려주는 playback 검증도 시작할 수 있습니다.
 
 ## 개발자 참고
 
@@ -134,7 +134,7 @@ Kafka 또는 RabbitMQ queue worker 흐름까지 보여주려면 통합 스택 �
 
 ## 현재 완성도와 남은 과제
 
-현재는 bridge, provider routing, mock GPU, Korean/KSL `sign-gemma-ko` 및 English/ASL `sign-gemma` profile registry, profile-aware health/readiness, queue worker contract, broker serializer/converter, platform sample gallery, T2S/STS mock synthesis contract와 playback stub이 준비되어 있습니다. 제품 단계로 가려면 실제 landmark extractor, 실제 SignGemma 또는 SignGemma-compatible weight serving, 실제 ASR/T2S model serving, 사용자 인증이 붙은 WSS endpoint, 운영 대시보드, 개인정보 보호 정책이 추가되어야 합니다.
+현재는 bridge, provider routing, mock GPU, Korean/KSL `sign-gemma-ko` 및 English/ASL `sign-gemma` profile registry, profile-aware health/readiness, queue worker contract, broker serializer/converter, platform sample gallery, T2S/STS mock synthesis contract, ASR/T2S HTTP provider 확장점과 playback stub이 준비되어 있습니다. 제품 단계로 가려면 실제 landmark extractor, 실제 SignGemma 또는 SignGemma-compatible weight serving, 실제 ASR/T2S model serving, 사용자 인증이 붙은 WSS endpoint, 운영 대시보드, 개인정보 보호 정책이 추가되어야 합니다.
 
 개발자가 참고할 기준 문서는 `API_SPI_REFERENCE.md`, `MODEL_PROTOCOL.md`, `LANGUAGE_MODEL_GUIDE.md`, `SIGN_SYNTHESIS_DESIGN_KO.md`, `SIGN_SYNTHESIS_DESIGN.md`, `SIGN_GEMMA_RESEARCH_KO.md`, `SIGN_GEMMA_RESEARCH.md`입니다. 이 문서들이 API/SPI 경계, BE-model envelope, 언어별 Sign Gemma 호환 model spec, T2S/STS 설계, 공개 SignGemma 조사와 landmark 지원 범위를 나눠 담당합니다.
 

@@ -59,6 +59,7 @@ graph TD
   - `POST /api/v2/sign/synthesize`
   - `POST /api/v2/speech/sign`
   - mock `SignPlan + landmark motion` 및 Flutter/Web playback stub
+  - `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, `SignSynthesisProvider` SPI
 
 ## Provider 구조
 

@@ -94,8 +94,10 @@ SignGemma-compatible profile.
   paths are ready for asynchronous worker expansion.
 - Readiness checks distinguish "the app process is up" from "the model backend
   is ready."
-- The phase 1 T2S/STS contract returns `SignPlan + landmark motion`, allowing
-  text/speech-to-sign playback validation before a production generator is ready.
+- The phase 1 T2S/STS contract and `SpeechToTextAdapter`, `SignPlanner`,
+  `SignMotionGenerator`, and `SignSynthesisProvider` SPI return `SignPlan +
+  landmark motion`, allowing text/speech-to-sign playback validation before a
+  production generator is ready.
 
 ## Developer Notes
 
@@ -178,8 +180,8 @@ Validate Kafka or RabbitMQ worker flows:
 SignBridge currently includes the bridge, provider routing, mock GPU server,
 Korean/KSL `sign-gemma-ko` and English/ASL `sign-gemma` profile registries,
 profile-aware health/readiness, queue worker contract, broker serializer/converter
-settings, a platform sample gallery, and a mock T2S/STS synthesis contract with
-playback stubs.
+settings, a platform sample gallery, a mock T2S/STS synthesis contract, ASR/T2S
+HTTP provider extension points, and playback stubs.
 
 To reach production readiness, the project still needs a real landmark
 extractor, official SignGemma or SignGemma-compatible ASL model serving,

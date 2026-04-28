@@ -76,6 +76,16 @@ sign:
     queue-timeout-ms: 5000
     timeout-ms: 2000
     probe-timeout-ms: 1000
+  synthesis:
+    provider: mock
+    asr-provider: mock
+    base-url: http://localhost:8010
+    asr-base-url: http://localhost:8011
+    synthesize-path: /api/v2/sign/synthesize
+    asr-path: /api/v2/speech/transcribe
+    output-format: landmarks
+    protocol-version: signbridge-synthesis-v1
+    timeout-ms: 3000
   websocket:
     allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost"
   window:

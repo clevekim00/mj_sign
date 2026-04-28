@@ -59,6 +59,7 @@ The project now includes an LLM-based refinement layer that transforms raw sign 
   - `POST /api/v2/sign/synthesize`
   - `POST /api/v2/speech/sign`
   - mock `SignPlan + landmark motion` with Flutter/Web playback stubs
+  - SPI boundaries for `SpeechToTextAdapter`, `SignPlanner`, `SignMotionGenerator`, and `SignSynthesisProvider`
 
 ## Provider Model
 

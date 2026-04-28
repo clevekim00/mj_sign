@@ -125,18 +125,40 @@ Request:
 
 ## Backend SPI
 
-현재 1차 구현은 `SignSynthesisService`가 mock planner와 mock motion generator를 직접 포함합니다. 운영 단계에서는 아래처럼 분리합니다.
+현재 1차 구현은 명시적인 backend SPI로 분리되어 있습니다. `SignSynthesisService`는 언어/session context를 정규화한 뒤 ASR과 synthesis provider로 위임합니다.
 
 ```java
 SignSynthesisResult synthesize(SignSynthesisRequest request)
 ```
 
-권장 확장 포인트:
+구현된 확장 포인트:
 
 - `SpeechToTextAdapter`: audio를 transcript로 변환합니다.
 - `SignPlanner`: text/transcript를 언어별 gloss, NMS, timing plan으로 변환합니다.
 - `SignMotionGenerator`: plan을 landmark frames, skeleton frames, avatar motion으로 변환합니다.
 - `SignSynthesisProvider`: local/mock/http/grpc/queue transport를 추상화합니다.
+
+현재 구현체:
+
+| SPI | Mock/local 구현 | 외부 연동 구현 |
+| --- | --- | --- |
+| `SpeechToTextAdapter` | `MockSpeechToTextAdapter` | `HttpSpeechToTextAdapter` |
+| `SignPlanner` | `DefaultSignPlanner` | 언어별 planner로 교체 |
+| `SignMotionGenerator` | `MockSignMotionGenerator` | avatar/skeleton generator로 교체 |
+| `SignSynthesisProvider` | `MockSignSynthesisProvider` | `HttpSignSynthesisProvider` |
+
+설정:
+
+```properties
+sign.synthesis.provider=mock
+sign.synthesis.asr-provider=mock
+sign.synthesis.base-url=http://localhost:8010
+sign.synthesis.asr-base-url=http://localhost:8011
+sign.synthesis.synthesize-path=/api/v2/sign/synthesize
+sign.synthesis.asr-path=/api/v2/speech/transcribe
+```
+
+`application-synthesis-http.properties` profile을 사용하면 ASR과 SignGemma-compatible T2S 요청을 외부 HTTP 서비스로 라우팅할 수 있습니다.
 
 ## 언어/모델 라우팅
 
@@ -170,7 +192,7 @@ Web:
 
 1. API 계약과 playback stub을 고정합니다. 현재 완료된 1차 구현입니다.
 2. ASR adapter를 붙여 `audio_b64` 또는 multipart audio를 transcript로 변환합니다.
-3. 언어별 `SignPlanner` SPI를 분리하고 KSL/ASL mock planner를 테스트합니다.
-4. 실제 T2S model provider를 `http/grpc/queue` transport 뒤에 연결합니다.
+3. 운영용 ASR과 언어별 planner 구현체를 기존 SPI 뒤에 추가합니다.
+4. 실제 T2S model provider는 먼저 `http` 뒤에 연결하고, 비동기 확장이 필요해지면 synthesis용 `grpc/queue` transport를 추가합니다.
 5. landmark motion을 3D skeleton/avatar motion으로 retargeting합니다.
 6. Deaf reviewer evaluation set과 품질 지표를 추가합니다.

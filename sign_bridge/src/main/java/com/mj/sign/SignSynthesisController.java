@@ -33,6 +33,8 @@ public class SignSynthesisController {
             return signSynthesisService.synthesize(request);
         } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage(), error);
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, error.getMessage(), error);
         }
     }
 
