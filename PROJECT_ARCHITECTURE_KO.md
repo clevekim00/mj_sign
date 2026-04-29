@@ -98,3 +98,13 @@ graph LR
 개발 환경에서는 앱, Spring Boot, `sign_gemma_mock`을 한 머신에서 실행할 수
 있습니다. 운영 환경에서는 SignBridge와 model serving을 분리하고, GPU model
 서버나 broker worker를 독립적으로 확장하는 구성이 안전합니다.
+
+## 검증 훅
+
+- `./scripts/verify_docker_http_stack.sh`는 HTTP compose stack을 build하고
+  readiness, profile discovery, T2S, WebSocket protobuf streaming을 검증합니다.
+- `./scripts/regenerate_protobuf.sh`는 `schema/landmark.proto`에서 Python과
+  Flutter protobuf 산출물을 재생성합니다. Spring Java 출력은 Gradle build에서
+  생성합니다.
+- `/swagger-ui.html`과 `/v3/api-docs`는 profile discovery, synthesis,
+  readiness, health, metrics 예제를 포함한 OpenAPI 문서를 제공합니다.

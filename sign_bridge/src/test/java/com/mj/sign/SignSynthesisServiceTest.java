@@ -103,6 +103,30 @@ class SignSynthesisServiceTest {
     }
 
     @Test
+    void rejectsUnsupportedModelProfile() {
+        SignSynthesisService service = newService(new SignSynthesisProperties());
+        SignSynthesisRequest request = new SignSynthesisRequest(
+                "unsupported-profile",
+                "text",
+                "hello",
+                null,
+                null,
+                "en-US",
+                "asl",
+                "custom-model",
+                null,
+                null
+        );
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.synthesize(request)
+        );
+
+        assertEquals("unsupported model_profile: custom-model", error.getMessage());
+    }
+
+    @Test
     void routesToHttpSynthesisProviderWhenConfigured() {
         SignSynthesisProperties properties = new SignSynthesisProperties();
         properties.setProvider("http");

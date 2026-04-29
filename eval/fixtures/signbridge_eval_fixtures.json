@@ -1,0 +1,35 @@
+{
+  "schema_version": "signbridge-eval-fixtures-v1",
+  "fixtures": [
+    {
+      "id": "asl-greeting-001",
+      "task": "s2t",
+      "session_id": "eval-asl-greeting-001",
+      "locale": "en-US",
+      "sign_language": "asl",
+      "model_profile": "sign-gemma",
+      "protocol_version": "signbridge-model-v1",
+      "frame_count": 8,
+      "expected_any_text": [
+        "Nice to meet you.",
+        "You are going to school.",
+        "What does that sign mean?"
+      ]
+    },
+    {
+      "id": "ksl-basic-001",
+      "task": "s2t",
+      "session_id": "eval-ksl-basic-001",
+      "locale": "ko-KR",
+      "sign_language": "ksl",
+      "model_profile": "sign-gemma-ko",
+      "protocol_version": "signbridge-model-v1",
+      "frame_count": 8,
+      "expected_any_text": [
+        "나 밥 먹다",
+        "너 학교 가다",
+        "오늘 날씨 좋다"
+      ]
+    }
+  ]
+}

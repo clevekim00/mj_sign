@@ -114,6 +114,54 @@ Event types:
 
 ## REST API
 
+### Model Profile Discovery API
+
+Endpoint:
+
+```text
+GET /api/v2/model-profiles
+```
+
+Spring Boot exposes the server-side `sign.language` registry so Web, iOS,
+iPadOS, Android, Windows, macOS/OSX, and Linux clients can present the same
+profile choices before streaming landmarks.
+
+Swagger UI at `/swagger-ui.html` and OpenAPI JSON at `/v3/api-docs` include
+example payloads for this endpoint, T2S/STS synthesis, readiness, health, and
+metrics.
+
+Response:
+
+```json
+{
+  "default_profile": {
+    "locale": "ko-KR",
+    "sign_language": "ksl",
+    "model_profile": "sign-gemma-ko",
+    "protocol_version": "signbridge-model-v1",
+    "is_default": true
+  },
+  "profiles": [
+    {
+      "locale": "en-US",
+      "sign_language": "asl",
+      "model_profile": "sign-gemma",
+      "protocol_version": "signbridge-model-v1",
+      "is_default": false
+    }
+  ]
+}
+```
+
+Flutter uses `SignModelProfileHttpClient` and `SignModelProfileCatalog` to load
+this registry. The selected `SignModelProfile` becomes the source for
+`SignLanguageContext`, Text-to-Sign, and Speech-to-Sign calls.
+
+명시적으로 전달한 `sign_language` 또는 `model_profile`이 registry에 없거나,
+두 값이 서로 다른 route에 속하면 요청은 unsupported profile로 거절됩니다.
+REST synthesis API는 HTTP 400을 반환하고, WebSocket은 `unsupported-profile`
+error event를 보낸 뒤 bad-data close status로 연결을 닫습니다.
+
 ### LLM Translation API
 
 Endpoint:

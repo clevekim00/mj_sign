@@ -42,6 +42,7 @@ graph TD
 
 ```bash
 cd sign_gemma_mock
+python3 -m pip install -r requirements.txt
 python3 -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
@@ -88,11 +89,13 @@ Then open `http://127.0.0.1:8090`.
    - Web, desktop, and iOS simulator on the same machine:
      `ws://127.0.0.1:8080/ws/sign`
    - Physical devices: use the host machine LAN IP.
-3. The `SlrInputWidget` sends demo landmark frames to Spring Boot `/ws/sign`.
-4. Mock SignGemma-compatible S2T results appear in `Recognized text`.
-5. Enter a sentence or speech transcript in `SignGemma T2S / STS`.
-6. Press `Text to Sign` or `Speech to Sign`.
-7. `SignOutputWidget` plays the returned landmark motion.
+3. Use `Model profile` to load `/api/v2/model-profiles` and choose the active
+   locale/sign-language/model route.
+4. The `SlrInputWidget` sends demo landmark frames to Spring Boot `/ws/sign`.
+5. Mock SignGemma-compatible S2T results appear in `Recognized text`.
+6. Enter a sentence or speech transcript in `SignGemma T2S / STS`.
+7. Press `Text to Sign` or `Speech to Sign`.
+8. `SignOutputWidget` plays the returned landmark motion.
 
 ## API Checks
 
@@ -101,6 +104,34 @@ Spring Boot readiness:
 ```bash
 curl -fsS http://127.0.0.1:8080/internal/readyz
 ```
+
+Full Docker HTTP stack verification:
+
+```bash
+./scripts/verify_docker_http_stack.sh
+```
+
+Supported model profiles:
+
+```bash
+curl -fsS http://127.0.0.1:8080/api/v2/model-profiles
+```
+
+Interactive OpenAPI examples are available at
+`http://localhost:8080/swagger-ui.html`. The generated contract includes sample
+payloads for profile discovery, readiness, T2S, and STS.
+
+Unsupported profile policy:
+
+```bash
+curl -i -sS \
+  -H 'Content-Type: application/json' \
+  -d '{"session_id":"bad-profile","text":"hello","locale":"en-US","sign_language":"asl","model_profile":"custom-model"}' \
+  http://127.0.0.1:8080/api/v2/sign/synthesize
+```
+
+Expected result: HTTP 400. WebSocket clients receive an `unsupported-profile`
+error event and the connection closes.
 
 Text-to-Sign:
 
@@ -120,6 +151,27 @@ curl -fsS \
   http://127.0.0.1:8080/api/v2/speech/sign
 ```
 
+## Fixture Evaluation
+
+The repository includes a lightweight fixture runner for model-contract
+regression checks. It can validate fixtures offline or call a running
+SignGemma-compatible model endpoint.
+
+Offline validation:
+
+```bash
+python3 scripts/run_eval_fixtures.py
+```
+
+Run against the mock model server:
+
+```bash
+python3 scripts/run_eval_fixtures.py \
+  --model-url http://127.0.0.1:8001/api/v2/recognize
+```
+
+Fixture data lives in `eval/fixtures/signbridge_eval_fixtures.json`.
+
 ## Current Limits
 
 - The demo does not load official SignGemma weights.
@@ -133,6 +185,7 @@ curl -fsS \
 | Symptom | Check |
 | --- | --- |
 | Spring Boot readiness is `DOWN` | Confirm the mock server port and `sign.gpu.base-url` match |
+| Mock server fails with protobuf runtime version errors | Run `python3 -m pip install -r sign_gemma_mock/requirements.txt`; the generated Python schema requires `protobuf>=7.34.0` |
 | Android emulator cannot connect | Use `10.0.2.2` instead of `127.0.0.1` |
 | Physical phone/tablet cannot connect | Check host LAN IP, same Wi-Fi, and firewall rules |
 | Browser camera permission fails | Use localhost or an HTTPS secure origin |

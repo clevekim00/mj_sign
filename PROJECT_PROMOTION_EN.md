@@ -43,7 +43,7 @@ GPU-serving adapters, queue workers, and an optional LLM refinement layer.
 
 The current local demo uses `DemoLandmarkFrameSource` instead of a real camera
 extractor to validate the SignBridge connection, protobuf streaming, idle flush,
-mock GPU response, and language profile echo.
+mock GPU response, model profile discovery, and language profile echo.
 
 The product target is to replace `DemoLandmarkFrameSource` with a real
 camera/MediaPipe-style landmark extractor and attach SignGemma-compatible or
@@ -72,6 +72,8 @@ SignGemma-compatible profile.
   through WebSocket query parameters.
 - SignBridge normalizes the values into `InferenceContext` and forwards the same
   context through HTTP, queue, and future gRPC providers.
+- Spring Boot publishes supported profile routes at `/api/v2/model-profiles`,
+  and the Flutter sample reflects them in the model profile selector.
 - The mock GPU server exposes Korean/KSL and English/ASL metadata, supported
   landmarks, and mock responses through the `sign-gemma-ko` and `sign-gemma`
   profile registries.
@@ -116,6 +118,10 @@ SignGemma-compatible profile.
   sign models can be attached without reshaping provider or transport code.
 - Queue workers are structured so request consumption and result publication can
   be validated in local integration flows.
+- The HTTP compose stack has a single verification script for readiness, profile
+  discovery, T2S, and WebSocket protobuf streaming.
+- OpenAPI examples cover profile discovery, synthesis, readiness, health, and
+  metrics so app and backend teams can share the same contract.
 - Keeping the BE-model envelope and adapter layer stable lets the app and
   SignBridge API remain steady even when model weights or serving backends change.
 - T2S/STS architecture is documented separately in `SIGN_SYNTHESIS_DESIGN.md`

@@ -74,7 +74,15 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        InferenceContext context = resolveInferenceContext(session.getUri());
+        InferenceContext context;
+        try {
+            context = resolveInferenceContext(session.getUri());
+        } catch (IllegalArgumentException error) {
+            metricsService.incrementPayloadErrors();
+            sendError(session, "connection", "unsupported-profile", error.getMessage());
+            session.close(CloseStatus.BAD_DATA.withReason(error.getMessage()));
+            return;
+        }
         log.info("Client connected: {} with inference context {}", session.getId(), context);
         activeSessions.put(session.getId(), session);
         websocketToInferenceContexts.put(session.getId(), context);
@@ -88,6 +96,26 @@ public class SignWebSocketHandler extends BinaryWebSocketHandler {
             ClientStreamChunk chunk = ClientStreamChunk.parseFrom(toByteArray(message.getPayload()));
             if (chunk.getSessionId().isBlank()) {
                 sendError(session, "missing-session", "missing-session", "session_id is required.");
+                return;
+            }
+            if (chunk.getFramesCount() == 0) {
+                metricsService.incrementPayloadErrors();
+                sendError(
+                        session,
+                        chunk.getSessionId(),
+                        "empty-frames",
+                        "ClientStreamChunk must include at least one landmark frame."
+                );
+                return;
+            }
+            if (chunk.getFramesCount() > sessionBufferService.maxBufferedFrames()) {
+                metricsService.incrementPayloadErrors();
+                sendError(
+                        session,
+                        chunk.getSessionId(),
+                        "too-many-frames",
+                        "ClientStreamChunk maximum frame batch size is " + sessionBufferService.maxBufferedFrames() + "."
+                );
                 return;
             }
 

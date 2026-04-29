@@ -20,6 +20,7 @@ class BridgeMetricsServiceTest {
         metricsService.incrementDispatchRejected();
         metricsService.incrementInferenceCompleted();
         metricsService.incrementIdleFlushTriggered();
+        metricsService.incrementModelProtocolErrors();
         metricsService.incrementInFlightInferences();
 
         Map<String, Object> snapshot = metricsService.snapshot();
@@ -39,5 +40,6 @@ class BridgeMetricsServiceTest {
         assertEquals(1L, counters.get("dispatch_rejected"));
         assertEquals(1L, counters.get("inference_completed"));
         assertEquals(1L, counters.get("idle_flush_triggered"));
+        assertEquals(1L, counters.get("model_protocol_errors"));
     }
 }

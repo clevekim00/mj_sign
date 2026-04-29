@@ -34,7 +34,7 @@ SignBridge는 이 문제를 “SignInputKit SDK + 클라우드/edge 브릿지 + 
 
 ## 현재 데모와 목표 제품
 
-현재 로컬 데모는 실제 카메라 extractor 대신 `DemoLandmarkFrameSource`를 사용해 SignBridge 연결, protobuf streaming, idle flush, mock GPU 응답, 언어 profile echo를 검증합니다.
+현재 로컬 데모는 실제 카메라 extractor 대신 `DemoLandmarkFrameSource`를 사용해 SignBridge 연결, protobuf streaming, idle flush, mock GPU 응답, model profile discovery, 언어 profile echo를 검증합니다.
 
 목표 제품에서는 `DemoLandmarkFrameSource`를 실제 카메라/MediaPipe-style landmark extractor로 교체하고, SignGemma-compatible 또는 공식 SignGemma weight가 준비된 profile을 GPU serving backend에 연결합니다.
 
@@ -54,6 +54,7 @@ SignBridge는 언어, 수어 체계, 모델 profile을 분리합니다. 한국�
 
 - Flutter client는 platform locale 또는 앱이 제공한 `SignLanguageContext`를 WebSocket query로 전달합니다.
 - SignBridge는 이 값을 `InferenceContext`로 정규화해 HTTP, queue, future gRPC provider에 동일하게 넘깁니다.
+- Spring Boot는 `/api/v2/model-profiles`로 지원 profile registry를 공개하고, Flutter 샘플은 이 목록을 선택 UI로 반영합니다.
 - Mock GPU 서버는 `sign-gemma-ko`와 `sign-gemma` profile registry를 통해 Korean/KSL 및 English/ASL mock response, model metadata, supported landmarks를 제공합니다.
 - `/health`와 `/ready`는 profile 목록, 로드 상태, LoRA weight 설정 여부, 지원 landmark contract를 반환합니다.
 - `scripts/verify_english_asl_profile.sh`로 WebSocket부터 BE, mock GPU, profile echo까지 end-to-end 검증할 수 있습니다.
@@ -84,6 +85,10 @@ SignBridge는 언어, 수어 체계, 모델 profile을 분리합니다. 한국�
 
 - API/SPI reference와 언어별 모델 추가 가이드를 분리해, 새 수어 모델을 붙일 때 provider/transport 코드를 흔들지 않습니다.
 - Queue worker는 request consumption부터 result publication까지 로컬 통합 검증이 가능하도록 구성되어 있습니다.
+- HTTP compose stack은 readiness, profile discovery, T2S, WebSocket protobuf
+  streaming을 한 번에 확인하는 검증 스크립트를 제공합니다.
+- OpenAPI 예제는 profile discovery, synthesis, readiness, health, metrics를
+  포함하므로 앱/백엔드 팀이 같은 계약을 공유할 수 있습니다.
 - BE-model envelope와 adapter layer를 유지하면 모델 weight나 serving 방식이 바뀌어도 앱과 SignBridge API를 안정적으로 유지할 수 있습니다.
 - T2S/STS 설계는 `SIGN_SYNTHESIS_DESIGN_KO.md`와 `SIGN_SYNTHESIS_DESIGN.md`에 별도로 정리했습니다.
 

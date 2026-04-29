@@ -38,6 +38,7 @@ graph TD
 
 ```bash
 cd sign_gemma_mock
+python3 -m pip install -r requirements.txt
 python3 -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
@@ -83,11 +84,13 @@ flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8090
    - Android emulator: `ws://10.0.2.2:8080/ws/sign`
    - 같은 머신의 Web/desktop/iOS simulator: `ws://127.0.0.1:8080/ws/sign`
    - 실제 기기: host machine의 LAN IP를 사용합니다.
-3. 위쪽 `SlrInputWidget`은 demo landmark source를 Spring Boot `/ws/sign`으로
+3. `Model profile`에서 `/api/v2/model-profiles`를 읽고 사용할
+   locale/sign-language/model route를 선택합니다.
+4. 위쪽 `SlrInputWidget`은 demo landmark source를 Spring Boot `/ws/sign`으로
    보냅니다.
-4. `Recognized text`에 mock SignGemma-compatible S2T 결과가 표시됩니다.
-5. `SignGemma T2S / STS` 패널에 문장 또는 speech transcript를 입력합니다.
-6. `Text to Sign` 또는 `Speech to Sign`을 누르면 Spring Boot synthesis API가
+5. `Recognized text`에 mock SignGemma-compatible S2T 결과가 표시됩니다.
+6. `SignGemma T2S / STS` 패널에 문장 또는 speech transcript를 입력합니다.
+7. `Text to Sign` 또는 `Speech to Sign`을 누르면 Spring Boot synthesis API가
    호출되고, `SignOutputWidget`이 반환된 landmark motion을 재생합니다.
 
 ## API 확인
@@ -97,6 +100,33 @@ Spring Boot readiness:
 ```bash
 curl -fsS http://127.0.0.1:8080/internal/readyz
 ```
+
+Docker HTTP 통합 스택 검증:
+
+```bash
+./scripts/verify_docker_http_stack.sh
+```
+
+지원 model profile:
+
+```bash
+curl -fsS http://127.0.0.1:8080/api/v2/model-profiles
+```
+
+대화형 OpenAPI 예제는 `http://localhost:8080/swagger-ui.html`에서 확인할 수
+있습니다. 생성된 계약에는 profile discovery, readiness, T2S, STS 예제가 포함됩니다.
+
+Unsupported profile 정책:
+
+```bash
+curl -i -sS \
+  -H 'Content-Type: application/json' \
+  -d '{"session_id":"bad-profile","text":"hello","locale":"en-US","sign_language":"asl","model_profile":"custom-model"}' \
+  http://127.0.0.1:8080/api/v2/sign/synthesize
+```
+
+예상 결과는 HTTP 400입니다. WebSocket client는 `unsupported-profile` error
+event를 받은 뒤 연결이 종료됩니다.
 
 Text-to-Sign:
 
@@ -115,6 +145,27 @@ curl -fsS \
   -d '{"session_id":"demo-sts","transcript":"I need help tomorrow.","locale":"en-US","sign_language":"asl","model_profile":"sign-gemma"}' \
   http://127.0.0.1:8080/api/v2/speech/sign
 ```
+
+## Fixture 평가
+
+모델 계약 회귀 검증을 위한 lightweight fixture runner를 추가했습니다. 서버 없이
+fixture 형식만 검증할 수도 있고, 실행 중인 SignGemma-compatible model endpoint를
+직접 호출할 수도 있습니다.
+
+Offline validation:
+
+```bash
+python3 scripts/run_eval_fixtures.py
+```
+
+Mock model server 대상 실행:
+
+```bash
+python3 scripts/run_eval_fixtures.py \
+  --model-url http://127.0.0.1:8001/api/v2/recognize
+```
+
+Fixture 데이터는 `eval/fixtures/signbridge_eval_fixtures.json`에 있습니다.
 
 ## 앱에서 확인할 수 있는 것
 
@@ -142,6 +193,7 @@ curl -fsS \
 | 증상 | 확인할 것 |
 | --- | --- |
 | Spring Boot readiness가 `DOWN` | `sign_gemma_mock` 서버 port와 `sign.gpu.base-url`이 같은지 확인 |
+| Mock 서버가 protobuf runtime version 오류로 실패 | `python3 -m pip install -r sign_gemma_mock/requirements.txt` 실행. 생성된 Python schema는 `protobuf>=7.34.0`을 요구 |
 | Android emulator가 bridge에 연결 안 됨 | `127.0.0.1` 대신 `10.0.2.2` 사용 |
 | 실제 iPhone/iPad/Android 기기가 연결 안 됨 | 같은 Wi-Fi의 host LAN IP와 방화벽 확인 |
 | Web에서 카메라 권한 실패 | localhost 또는 HTTPS secure origin에서 실행 |

@@ -121,7 +121,8 @@ graph TD
 
 ```bash
 cd sign_gemma_mock
-python main.py
+python3 -m pip install -r requirements.txt
+python3 main.py
 ```
 
 2. Spring 브릿지 실행
@@ -163,6 +164,10 @@ flutter run
 Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼마다 active keyboard layout을 읽는 API가 다르기 때문에, 실제 키보드 언어를 앱에서 알 수 있는 경우 `SignLanguageContext`로 명시 override하면 됩니다.
 
 영어 locale은 BE에서 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+
+Spring Boot는 `GET /api/v2/model-profiles`로 지원하는 locale/sign-language/model route를 공개합니다. Flutter 샘플의 `Model profile` selector는 이 endpoint를 읽어 WebSocket, T2S, STS 요청에 같은 profile을 적용하고, bridge가 꺼져 있으면 bundled demo profile로 fallback합니다.
+
+명시적으로 요청한 `sign_language` 또는 `model_profile`이 registry에 없거나 서로 맞지 않으면 SignBridge는 unsupported profile로 거절합니다. REST synthesis API는 HTTP 400을 반환하고, WebSocket은 `unsupported-profile` event를 보낸 뒤 연결을 닫습니다.
 
 API/SPI 경계는 [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)에 정리되어 있고, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 관리합니다.
 
@@ -224,12 +229,40 @@ docker compose -f docker-compose.rabbitmq.yml down
 브로커, mock GPU, Spring 브릿지를 한 번에 올리려면 아래 compose 파일을 사용하면 됩니다.
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d
-docker compose -f docker-compose.stack.kafka.yml up -d
-docker compose -f docker-compose.stack.rabbitmq.yml up -d
+docker compose -f docker-compose.stack.http.yml up -d --build
+docker compose -f docker-compose.stack.kafka.yml up -d --build
+docker compose -f docker-compose.stack.rabbitmq.yml up -d --build
 ```
 
 통합 스택의 브릿지 컨테이너는 Docker 내부 네트워크 기준으로 Kafka는 `kafka:9092`, RabbitMQ는 `rabbitmq:5672` 를 바라보도록 오버라이드되어 있고, mock GPU는 `http://mock-gpu:8000` 으로 연결됩니다.
+
+HTTP provider 통합 스택은 아래 스크립트로 build, readiness, profile discovery,
+T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
+
+```bash
+./scripts/verify_docker_http_stack.sh
+```
+
+Mock GPU 이미지는 [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile)에서 빌드되며, 생성된 Python protobuf schema와 맞는 runtime은 [`requirements.txt`](./sign_gemma_mock/requirements.txt)로 고정합니다.
+
+## Protobuf 재생성
+
+공용 schema를 수정한 뒤에는 Python mock, Flutter SDK, Spring proto source를 같은
+계약으로 맞춥니다.
+
+```bash
+./scripts/regenerate_protobuf.sh
+```
+
+이 스크립트는 `protoc`와 `protoc-gen-dart`를 사용합니다. Spring Java protobuf
+출력은 Gradle build에서 생성되며, 필요하면 `RUN_GRADLE=1 ./scripts/regenerate_protobuf.sh`
+로 함께 생성할 수 있습니다.
+
+Python mock schema만 다시 만들 때는 Dart 플러그인 없이 아래 스크립트를 사용합니다.
+
+```bash
+./scripts/regenerate_mock_protobuf.sh
+```
 
 ## Queue 실제 통합 검증
 
@@ -288,6 +321,10 @@ cd sign_bridge
 ./gradlew test
 ```
 
+CI 검증은 [ci.yml](./.github/workflows/ci.yml)에 정의되어 있습니다. Spring Boot test,
+Flutter package analyze, Flutter example test, Python mock import smoke,
+eval fixture smoke를 실행합니다.
+
 ## LLM 기능 및 Swagger 검증
 
 ### 번역 API 테스트
@@ -300,6 +337,9 @@ curl -X POST http://localhost:8080/api/v2/translate \
 ### Swagger UI (API 문서)
 - **Swagger UI**: `http://localhost:8080/swagger-ui.html`
 - **OpenAPI Docs**: `http://localhost:8080/v3/api-docs`
+
+OpenAPI 계약에는 model profile discovery, T2S/STS synthesis, readiness,
+health, metrics의 예제 request/response가 포함되어 있습니다.
 
 로컬 Ollama 서버에 Gemma 2 모델이 실행 중이어야 합니다.
 

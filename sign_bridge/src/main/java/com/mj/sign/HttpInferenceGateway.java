@@ -2,8 +2,10 @@ package com.mj.sign;
 
 import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Base64;
+import java.util.List;
 
 @Service
 public class HttpInferenceGateway implements InferenceGateway {
@@ -12,13 +14,24 @@ public class HttpInferenceGateway implements InferenceGateway {
 
     private final GpuServingClient gpuServingClient;
     private final GpuServingProperties properties;
+    private final BridgeMetricsService metricsService;
 
+    @Autowired
     public HttpInferenceGateway(
             GpuServingClient gpuServingClient,
-            GpuServingProperties properties
+            GpuServingProperties properties,
+            BridgeMetricsService metricsService
     ) {
         this.gpuServingClient = gpuServingClient;
         this.properties = properties;
+        this.metricsService = metricsService;
+    }
+
+    HttpInferenceGateway(
+            GpuServingClient gpuServingClient,
+            GpuServingProperties properties
+    ) {
+        this(gpuServingClient, properties, new BridgeMetricsService());
     }
 
     @Override
@@ -34,7 +47,7 @@ public class HttpInferenceGateway implements InferenceGateway {
     @Override
     public TranslationResult sendForInference(ClientStreamChunk chunk, InferenceContext context) {
         try {
-            return toTranslationResult(chunk.getSessionId(), gpuServingClient.infer(toRequest(chunk, context)));
+            return toTranslationResult(chunk.getSessionId(), gpuServingClient.infer(toRequest(chunk, context)), context);
         } catch (Exception error) {
             return errorResult(chunk.getSessionId(), "Failed to connect to GPU server.");
         }
@@ -59,6 +72,20 @@ public class HttpInferenceGateway implements InferenceGateway {
     }
 
     TranslationResult toTranslationResult(String requestedSessionId, GpuInferenceResponse response) {
+        return toTranslationResult(requestedSessionId, response, InferenceContext.defaults());
+    }
+
+    TranslationResult toTranslationResult(
+            String requestedSessionId,
+            GpuInferenceResponse response,
+            InferenceContext context
+    ) {
+        List<String> validationErrors = ModelProtocolValidator.validateResponse(response, context);
+        if (!validationErrors.isEmpty()) {
+            metricsService.incrementModelProtocolErrors();
+            return errorResult(requestedSessionId, "Model protocol error: " + String.join("; ", validationErrors));
+        }
+
         String sessionId = isBlank(response.session_id()) ? requestedSessionId : response.session_id();
         if (!isBlank(response.error())) {
             return errorResult(sessionId, response.error());
@@ -68,7 +95,7 @@ public class HttpInferenceGateway implements InferenceGateway {
                 .setSessionId(sessionId)
                 .setText(nullToEmpty(response.text()))
                 .setIsFinal(response.is_final() == null || response.is_final())
-                .setConfidence(response.confidence() == null ? 0.0f : response.confidence().floatValue())
+                .setConfidence((float) ModelProtocolValidator.normalizedConfidence(response.confidence()))
                 .build();
     }
 

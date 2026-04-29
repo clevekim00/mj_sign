@@ -4,6 +4,8 @@ import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,7 +21,11 @@ class HttpInferenceGatewayTest {
                         0.95,
                         321,
                         "sign-gemma-prod-v1",
-                        null
+                        null,
+                        request.protocol_version(),
+                        request.locale(),
+                        request.sign_language(),
+                        request.model_profile()
                 ),
                 properties()
         );
@@ -85,6 +91,64 @@ class HttpInferenceGatewayTest {
         assertTrue(result.getIsFinal());
     }
 
+    @Test
+    void rejectsMismatchedModelProfileEcho() {
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        HttpInferenceGateway gateway = new HttpInferenceGateway(
+                request -> new GpuInferenceResponse(
+                        request.session_id(),
+                        "translated",
+                        true,
+                        0.9,
+                        10,
+                        "wrong-model",
+                        null,
+                        request.protocol_version(),
+                        request.locale(),
+                        request.sign_language(),
+                        "sign-gemma-ko"
+                ),
+                properties(),
+                metricsService
+        );
+
+        TranslationResult result = gateway.sendForInference(
+                ClientStreamChunk.newBuilder().setSessionId("session-mismatch").build(),
+                new InferenceContext("en-US", "asl", "sign-gemma", "signbridge-model-v1")
+        );
+
+        assertTrue(result.getText().startsWith("Model protocol error:"));
+        assertTrue(result.getText().contains("model_profile mismatch"));
+        assertEquals(0.0f, result.getConfidence());
+        assertEquals(1L, counters(metricsService).get("model_protocol_errors"));
+    }
+
+    @Test
+    void clampsServingConfidenceToProtocolRange() {
+        HttpInferenceGateway gateway = new HttpInferenceGateway(
+                request -> new GpuInferenceResponse(
+                        request.session_id(),
+                        "translated",
+                        true,
+                        2.4,
+                        10,
+                        "sign-gemma-prod-v1",
+                        null,
+                        request.protocol_version(),
+                        request.locale(),
+                        request.sign_language(),
+                        request.model_profile()
+                ),
+                properties()
+        );
+
+        TranslationResult result = gateway.sendForInference(
+                ClientStreamChunk.newBuilder().setSessionId("session-confidence").build()
+        );
+
+        assertEquals(1.0f, result.getConfidence());
+    }
+
     private GpuServingProperties properties() {
         GpuServingProperties properties = new GpuServingProperties();
         properties.setBaseUrl("http://gpu.internal");
@@ -94,5 +158,10 @@ class HttpInferenceGatewayTest {
         properties.setTimeoutMs(2000);
         properties.setProbeTimeoutMs(1000);
         return properties;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> counters(BridgeMetricsService metricsService) {
+        return (Map<String, Object>) metricsService.snapshot().get("counters");
     }
 }

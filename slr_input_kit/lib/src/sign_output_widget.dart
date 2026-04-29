@@ -14,6 +14,7 @@ class SignOutputWidget extends StatefulWidget {
     this.frameInterval = const Duration(milliseconds: 84),
     this.placeholder = 'Text/Speech to Sign 결과를 기다리는 중입니다.',
     this.showDebugOverlay = true,
+    this.showControls = true,
   });
 
   final List<LandmarkFrame> frames;
@@ -22,6 +23,7 @@ class SignOutputWidget extends StatefulWidget {
   final Duration frameInterval;
   final String placeholder;
   final bool showDebugOverlay;
+  final bool showControls;
 
   @override
   State<SignOutputWidget> createState() => _SignOutputWidgetState();
@@ -32,11 +34,16 @@ class _SignOutputWidgetState extends State<SignOutputWidget> {
   Timer? _timer;
   List<LandmarkFrame> _frames = const <LandmarkFrame>[];
   int _frameIndex = 0;
+  bool _playing = true;
+  int _speedIndex = 1;
+
+  static const List<double> _speedOptions = <double>[0.5, 1.0, 1.5, 2.0];
 
   @override
   void initState() {
     super.initState();
     _frames = List<LandmarkFrame>.of(widget.frames);
+    _playing = widget.autoPlay;
     _subscribe();
     _syncTimer();
   }
@@ -55,6 +62,7 @@ class _SignOutputWidgetState extends State<SignOutputWidget> {
     if (oldWidget.autoPlay != widget.autoPlay ||
         oldWidget.frameInterval != widget.frameInterval ||
         oldWidget.frames.length != widget.frames.length) {
+      _playing = widget.autoPlay;
       _syncTimer();
     }
   }
@@ -86,10 +94,10 @@ class _SignOutputWidgetState extends State<SignOutputWidget> {
   void _syncTimer() {
     _timer?.cancel();
     _timer = null;
-    if (!widget.autoPlay || _frames.length <= 1) {
+    if (!_playing || _frames.length <= 1) {
       return;
     }
-    _timer = Timer.periodic(widget.frameInterval, (_) {
+    _timer = Timer.periodic(_effectiveFrameInterval, (_) {
       if (!mounted || _frames.isEmpty) {
         return;
       }
@@ -97,6 +105,40 @@ class _SignOutputWidgetState extends State<SignOutputWidget> {
         _frameIndex = (_frameIndex + 1) % _frames.length;
       });
     });
+  }
+
+  Duration get _effectiveFrameInterval {
+    final speed = _speedOptions[_speedIndex];
+    final millis = max(
+      16,
+      (widget.frameInterval.inMilliseconds / speed).round(),
+    );
+    return Duration(milliseconds: millis);
+  }
+
+  void _togglePlayback() {
+    if (_frames.length <= 1) {
+      return;
+    }
+    setState(() {
+      _playing = !_playing;
+    });
+    _syncTimer();
+  }
+
+  void _replay() {
+    setState(() {
+      _frameIndex = 0;
+      _playing = widget.autoPlay || _frames.length > 1;
+    });
+    _syncTimer();
+  }
+
+  void _cycleSpeed() {
+    setState(() {
+      _speedIndex = (_speedIndex + 1) % _speedOptions.length;
+    });
+    _syncTimer();
   }
 
   @override
@@ -146,12 +188,27 @@ class _SignOutputWidgetState extends State<SignOutputWidget> {
             if (widget.showDebugOverlay)
               Positioned(
                 left: 16,
-                right: 16,
+                right: widget.showControls ? 150 : 16,
                 bottom: 16,
                 child: _PlaybackStatusPill(
                   frameCount: _frames.length,
                   frameIndex: _frames.isEmpty ? 0 : _frameIndex + 1,
-                  autoPlay: widget.autoPlay,
+                  playing: _playing,
+                  speed: _speedOptions[_speedIndex],
+                ),
+              ),
+            if (widget.showControls)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: _PlaybackControls(
+                  hasFrames: _frames.isNotEmpty,
+                  canPlay: _frames.length > 1,
+                  playing: _playing,
+                  speed: _speedOptions[_speedIndex],
+                  onPlayPause: _togglePlayback,
+                  onReplay: _replay,
+                  onSpeed: _cycleSpeed,
                 ),
               ),
           ],
@@ -165,12 +222,14 @@ class _PlaybackStatusPill extends StatelessWidget {
   const _PlaybackStatusPill({
     required this.frameCount,
     required this.frameIndex,
-    required this.autoPlay,
+    required this.playing,
+    required this.speed,
   });
 
   final int frameCount;
   final int frameIndex;
-  final bool autoPlay;
+  final bool playing;
+  final double speed;
 
   @override
   Widget build(BuildContext context) {
@@ -185,12 +244,79 @@ class _PlaybackStatusPill extends StatelessWidget {
         child: Text(
           frameCount == 0
               ? 'Sign synthesis playback ready'
-              : 'Sign synthesis playback $frameIndex / $frameCount ${autoPlay ? "auto" : "paused"}',
+              : 'Sign synthesis playback $frameIndex / $frameCount ${playing ? "playing" : "paused"} ${speed.toStringAsFixed(1)}x',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: Colors.white.withValues(alpha: 0.84),
             fontWeight: FontWeight.w700,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaybackControls extends StatelessWidget {
+  const _PlaybackControls({
+    required this.hasFrames,
+    required this.canPlay,
+    required this.playing,
+    required this.speed,
+    required this.onPlayPause,
+    required this.onReplay,
+    required this.onSpeed,
+  });
+
+  final bool hasFrames;
+  final bool canPlay;
+  final bool playing;
+  final double speed;
+  final VoidCallback onPlayPause;
+  final VoidCallback onReplay;
+  final VoidCallback onSpeed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: playing ? 'Pause playback' : 'Play motion',
+              visualDensity: VisualDensity.compact,
+              onPressed: canPlay ? onPlayPause : null,
+              icon: Icon(
+                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: canPlay ? Colors.white : Colors.white38,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Replay motion',
+              visualDensity: VisualDensity.compact,
+              onPressed: hasFrames ? onReplay : null,
+              icon: Icon(
+                Icons.replay_rounded,
+                color: hasFrames ? Colors.white : Colors.white38,
+              ),
+            ),
+            TextButton(
+              onPressed: hasFrames ? onSpeed : null,
+              child: Text(
+                '${speed.toStringAsFixed(1)}x',
+                style: TextStyle(
+                  color: hasFrames ? Colors.white : Colors.white38,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

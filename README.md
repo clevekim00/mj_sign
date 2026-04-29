@@ -87,7 +87,8 @@ Mock GPU 서버:
 
 ```bash
 cd sign_gemma_mock
-python main.py
+python3 -m pip install -r requirements.txt
+python3 main.py
 ```
 
 Spring bridge:
@@ -127,6 +128,10 @@ flutter run
 Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼별 active keyboard layout은 Flutter에서 일관되게 노출되지 않으므로, 앱에서 키보드 언어를 알 수 있는 경우 `SignLanguageContext`로 명시 override할 수 있습니다.
 
 영어 locale은 BE에서 기본적으로 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [MODEL_PROTOCOL.md](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+
+Spring Boot는 `GET /api/v2/model-profiles`로 지원하는 locale/sign-language/model profile registry를 공개합니다. Flutter 샘플의 `Model profile` selector는 이 endpoint를 읽어 WebSocket, T2S, STS 요청에 같은 profile을 적용하며, bridge가 꺼져 있으면 bundled demo profile로 fallback합니다.
+
+명시적으로 요청한 `sign_language` 또는 `model_profile`이 registry에 없거나 서로 맞지 않으면 SignBridge는 unsupported profile로 거절합니다. REST synthesis API는 HTTP 400을 반환하고, WebSocket은 `unsupported-profile` event를 보낸 뒤 연결을 닫습니다.
 
 API/SPI 경계는 [API_SPI_REFERENCE.md](./API_SPI_REFERENCE.md)에 정리되어 있고, 새 언어 모델을 추가하는 절차와 Sign Gemma 호환 model spec은 [LANGUAGE_MODEL_GUIDE.md](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 따르면 됩니다.
 
@@ -176,9 +181,40 @@ cd sign_bridge
 Mock GPU와 bridge까지 포함한 통합 스택:
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d
-docker compose -f docker-compose.stack.kafka.yml up -d
-docker compose -f docker-compose.stack.rabbitmq.yml up -d
+docker compose -f docker-compose.stack.http.yml up -d --build
+docker compose -f docker-compose.stack.kafka.yml up -d --build
+docker compose -f docker-compose.stack.rabbitmq.yml up -d --build
+```
+
+HTTP provider 통합 스택은 아래 스크립트로 build, readiness, profile discovery,
+T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
+
+```bash
+./scripts/verify_docker_http_stack.sh
+```
+
+`sign_gemma_mock`은 [requirements.txt](./sign_gemma_mock/requirements.txt)와
+[Dockerfile](./sign_gemma_mock/Dockerfile)로 Python/protobuf runtime을 고정합니다.
+로컬 Python에 오래된 `protobuf`가 설치되어 있으면 mock 서버가 schema import 단계에서
+실패할 수 있으므로 requirements 또는 Docker 실행을 사용하세요.
+
+## Protobuf 재생성
+
+공용 schema를 수정한 뒤에는 Python mock, Flutter SDK, Spring proto source를 같은
+계약으로 맞춰야 합니다.
+
+```bash
+./scripts/regenerate_protobuf.sh
+```
+
+이 스크립트는 `protoc`와 `protoc-gen-dart`를 사용합니다. Spring Java protobuf
+출력은 Gradle build에서 생성되며, 필요하면 `RUN_GRADLE=1 ./scripts/regenerate_protobuf.sh`
+로 함께 생성할 수 있습니다.
+
+Python mock schema만 다시 만들 때는 Dart 플러그인 없이 아래 스크립트를 사용합니다.
+
+```bash
+./scripts/regenerate_mock_protobuf.sh
 ```
 
 ## 통합 검증
@@ -213,6 +249,16 @@ Flutter 패키지 분석:
 ```bash
 dart analyze slr_input_kit
 ```
+
+CI는 GitHub Actions의 [ci.yml](./.github/workflows/ci.yml)에서 Spring Boot test,
+Flutter analyze/test, Python mock import, eval fixture smoke를 실행합니다.
+
+## OpenAPI 문서
+
+Bridge 실행 후 Swagger UI는 `http://localhost:8080/swagger-ui.html`,
+OpenAPI JSON은 `http://localhost:8080/v3/api-docs`에서 확인합니다.
+문서에는 model profile discovery, T2S/STS synthesis, readiness/health/metrics의
+예제 request/response가 포함되어 있습니다.
 
 ## 운영 준비 체크포인트
 

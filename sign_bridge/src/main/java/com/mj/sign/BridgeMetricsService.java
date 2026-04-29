@@ -21,6 +21,7 @@ public class BridgeMetricsService {
     private final AtomicLong dispatchRejected = new AtomicLong();
     private final AtomicLong inferenceCompleted = new AtomicLong();
     private final AtomicLong idleFlushTriggered = new AtomicLong();
+    private final AtomicLong modelProtocolErrors = new AtomicLong();
 
     public void incrementActiveWebSocketSessions() {
         activeWebSocketSessions.incrementAndGet();
@@ -59,6 +60,10 @@ public class BridgeMetricsService {
         idleFlushTriggered.incrementAndGet();
     }
 
+    public void incrementModelProtocolErrors() {
+        modelProtocolErrors.incrementAndGet();
+    }
+
     public void incrementInFlightInferences() {
         inFlightInferences.incrementAndGet();
     }
@@ -81,6 +86,7 @@ public class BridgeMetricsService {
         counters.put("dispatch_rejected", dispatchRejected.get());
         counters.put("inference_completed", inferenceCompleted.get());
         counters.put("idle_flush_triggered", idleFlushTriggered.get());
+        counters.put("model_protocol_errors", modelProtocolErrors.get());
 
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("gauges", gauges);

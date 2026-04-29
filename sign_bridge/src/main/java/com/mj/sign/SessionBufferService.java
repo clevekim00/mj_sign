@@ -111,6 +111,10 @@ public class SessionBufferService {
         return idleTimeoutMillis;
     }
 
+    public int maxBufferedFrames() {
+        return maxBufferedFrames;
+    }
+
     private void updateMetrics() {
         metricsService.updateBufferState(sessionBuffers.size(), totalBufferedFrames());
     }

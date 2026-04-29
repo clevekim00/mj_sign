@@ -1,7 +1,9 @@
 export 'src/sign_gemma_client.dart';
+export 'src/sign_model_profile_client.dart';
 export 'src/sign_output_widget.dart';
 export 'src/sign_synthesis_client.dart';
 export 'src/sign_synthesis_models.dart';
 export 'src/slr_input_widget.dart';
 export 'src/landmark_frame_source.dart';
+export 'src/mediapipe_landmark_frame_source.dart';
 export 'src/generated/schema/landmark.pb.dart';

@@ -3,6 +3,7 @@ package com.mj.sign;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class SignLanguageResolver {
@@ -34,16 +35,28 @@ public class SignLanguageResolver {
     ) {
         String locale = normalizeLocale(rawLocale, properties.getDefaultLocale());
         String language = Locale.forLanguageTag(locale).getLanguage().toLowerCase(Locale.ROOT);
+        Map<String, String> modelProfiles = properties.getModelProfileBySignLanguage();
         String signLanguage = normalizeToken(
                 rawSignLanguage,
                 properties.getSignLanguageByLocaleLanguage()
                         .getOrDefault(language, properties.getDefaultSignLanguage())
         );
+        if (hasText(rawSignLanguage) && !modelProfiles.containsKey(signLanguage)) {
+            throw new IllegalArgumentException("unsupported sign_language: " + signLanguage);
+        }
         String modelProfile = normalizeToken(
                 rawModelProfile,
-                properties.getModelProfileBySignLanguage()
-                        .getOrDefault(signLanguage, properties.getDefaultModelProfile())
+                modelProfiles.getOrDefault(signLanguage, properties.getDefaultModelProfile())
         );
+        String expectedModelProfile = modelProfiles.get(signLanguage);
+        if (hasText(rawModelProfile) && !modelProfiles.containsValue(modelProfile)) {
+            throw new IllegalArgumentException("unsupported model_profile: " + modelProfile);
+        }
+        if (expectedModelProfile != null && !expectedModelProfile.equals(modelProfile)) {
+            throw new IllegalArgumentException(
+                    "model_profile " + modelProfile + " is not registered for sign_language " + signLanguage
+            );
+        }
 
         return new InferenceContext(
                 locale,
@@ -70,5 +83,9 @@ public class SignLanguageResolver {
             return fallback;
         }
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

@@ -65,6 +65,56 @@ Default mapping:
 These values are configurable under `sign.language` in
 `sign_bridge/src/main/resources/application.yml`.
 
+## Model Profile Discovery API
+
+Client samples can discover the server-supported routing profiles before
+opening a WebSocket or calling synthesis:
+
+```text
+GET /api/v2/model-profiles
+```
+
+Response:
+
+```json
+{
+  "default_profile": {
+    "locale": "ko-KR",
+    "sign_language": "ksl",
+    "model_profile": "sign-gemma-ko",
+    "protocol_version": "signbridge-model-v1",
+    "is_default": true
+  },
+  "profiles": [
+    {
+      "locale": "en-US",
+      "sign_language": "asl",
+      "model_profile": "sign-gemma",
+      "protocol_version": "signbridge-model-v1",
+      "is_default": false
+    }
+  ]
+}
+```
+
+The Flutter example reads this endpoint into `SignModelProfileCatalog` and uses
+the selected profile for WebSocket query parameters plus T2S/STS requests. If
+the endpoint is unavailable, the sample falls back to bundled demo profiles.
+
+The same response shape is published as an OpenAPI example at
+`/v3/api-docs` and in Swagger UI at `/swagger-ui.html`.
+
+Unsupported profile policy:
+
+- If `sign_language` is explicitly provided and is not registered under
+  `sign.language.model-profile-by-sign-language`, SignBridge rejects it.
+- If `model_profile` is explicitly provided and is not registered, SignBridge
+  rejects it.
+- If `sign_language` and `model_profile` are both registered but do not belong
+  to the same route, SignBridge rejects the request.
+- REST synthesis APIs return HTTP 400. WebSocket connections emit an
+  `unsupported-profile` error event and close with bad-data status.
+
 ## Backend SPI
 
 Every inference provider receives the same logical inputs:
@@ -174,6 +224,19 @@ Compatibility requirements:
 
 Detailed onboarding steps for new language models are in
 [LANGUAGE_MODEL_GUIDE.md](./LANGUAGE_MODEL_GUIDE.md).
+
+## Protobuf Regeneration
+
+`schema/landmark.proto` is the canonical checked-in schema. After changing it,
+regenerate dependent artifacts from the repository root:
+
+```bash
+./scripts/regenerate_protobuf.sh
+```
+
+The script updates the Python mock schema, Flutter protobuf models, and Spring
+proto source. Java protobuf classes remain Gradle-generated build output.
+For Python mock-only regeneration, use `./scripts/regenerate_mock_protobuf.sh`.
 
 ## Sign Synthesis Protocol
 

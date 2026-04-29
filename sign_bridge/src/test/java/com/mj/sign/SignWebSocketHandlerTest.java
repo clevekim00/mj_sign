@@ -130,6 +130,33 @@ class SignWebSocketHandlerTest {
     }
 
     @Test
+    void rejectsUnsupportedModelProfileOnConnection() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(1, 6, 1000, clock, metricsService);
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession(
+                "ws-unsupported-profile",
+                URI.create("ws://localhost/ws/sign?locale=en-US&sign_language=asl&model_profile=custom-model")
+        );
+
+        handler.afterConnectionEstablished(session);
+
+        assertFalse(session.isOpen());
+        assertFalse(gateway.called);
+        assertEquals(1, session.messages.size());
+        assertTrue(session.messages.getFirst().contains("\"error_code\":\"unsupported-profile\""));
+        assertTrue(session.messages.getFirst().contains("unsupported model_profile"));
+    }
+
+    @Test
     void flushesBufferedFramesAfterIdleTimeout() throws Exception {
         MutableClock clock = new MutableClock();
         BridgeMetricsService metricsService = new BridgeMetricsService();
@@ -246,6 +273,59 @@ class SignWebSocketHandlerTest {
         assertTrue(session.messages.getFirst().contains("\"event_type\":\"error\""));
         assertTrue(session.messages.getFirst().contains("\"error_code\":\"invalid-payload\""));
         assertTrue(session.messages.getFirst().contains("Failed to parse protobuf payload."));
+    }
+
+    @Test
+    void rejectsEmptyFrameChunks() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(2, 6, 1000, clock, metricsService);
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession("ws-empty");
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(
+                session,
+                new BinaryMessage(ClientStreamChunk.newBuilder().setSessionId("stream-empty").build().toByteArray())
+        );
+
+        assertEquals(1, session.messages.size());
+        assertTrue(session.messages.getFirst().contains("\"event_type\":\"error\""));
+        assertTrue(session.messages.getFirst().contains("\"error_code\":\"empty-frames\""));
+        assertTrue(session.messages.getFirst().contains("at least one landmark frame"));
+        assertFalse(gateway.called);
+    }
+
+    @Test
+    void rejectsOversizedFrameChunks() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(2, 6, 1000, clock, metricsService);
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession("ws-oversized");
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(session, new BinaryMessage(chunk("stream-oversized", 7).toByteArray()));
+
+        assertEquals(1, session.messages.size());
+        assertTrue(session.messages.getFirst().contains("\"event_type\":\"error\""));
+        assertTrue(session.messages.getFirst().contains("\"error_code\":\"too-many-frames\""));
+        assertTrue(session.messages.getFirst().contains("maximum frame batch size is 6"));
+        assertFalse(gateway.called);
     }
 
     @Test

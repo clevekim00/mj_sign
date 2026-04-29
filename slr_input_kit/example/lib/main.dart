@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:slr_input_kit/slr_input_kit.dart';
 
@@ -51,21 +53,33 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
   final List<String> _timeline = <String>[];
 
   late PlatformSampleProfile _selectedProfile;
+  late SignModelProfile _selectedModelProfile;
+  List<SignModelProfile> _modelProfiles = const <SignModelProfile>[];
   late DemoLandmarkFrameSource _landmarkFrameSource;
   late String _activeBridgeUrl;
   SignSynthesisResult? _synthesisResult;
   String? _synthesisError;
+  String? _profileLoadError;
   bool _synthesizing = false;
+  bool _loadingProfiles = false;
+  int _profileRequestSerial = 0;
   int _sourceRevision = 0;
 
   @override
   void initState() {
     super.initState();
     _selectedProfile = platformSampleProfiles.first;
+    _modelProfiles = _fallbackProfiles();
+    _selectedModelProfile = _selectNearestProfile(
+      _modelProfiles,
+      _profileFromPlatform(_selectedProfile),
+      _modelProfiles.first,
+    );
     _activeBridgeUrl = _selectedProfile.recommendedBridgeUrl;
     _bridgeUrlController.text = _activeBridgeUrl;
     _synthesisController.text = _selectedProfile.synthesisPrompt;
     _landmarkFrameSource = _createSource(_selectedProfile);
+    unawaited(_loadModelProfiles());
   }
 
   @override
@@ -79,6 +93,11 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
   void _selectProfile(PlatformSampleProfile profile) {
     setState(() {
       _selectedProfile = profile;
+      _selectedModelProfile = _selectNearestProfile(
+        _modelProfiles,
+        _profileFromPlatform(profile),
+        _modelProfiles.first,
+      );
       _activeBridgeUrl = profile.recommendedBridgeUrl;
       _bridgeUrlController.text = _activeBridgeUrl;
       _synthesisController.text = profile.synthesisPrompt;
@@ -116,16 +135,16 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           ? await client.synthesizeSpeechTranscript(
               sessionId: 'sample-${_selectedProfile.id}-sts',
               transcript: text,
-              locale: _selectedProfile.locale,
-              signLanguage: _selectedProfile.signLanguage,
-              modelProfile: _selectedProfile.modelProfile,
+              locale: _selectedModelProfile.locale,
+              signLanguage: _selectedModelProfile.signLanguage,
+              modelProfile: _selectedModelProfile.modelProfile,
             )
           : await client.synthesizeText(
               sessionId: 'sample-${_selectedProfile.id}-t2s',
               text: text,
-              locale: _selectedProfile.locale,
-              signLanguage: _selectedProfile.signLanguage,
-              modelProfile: _selectedProfile.modelProfile,
+              locale: _selectedModelProfile.locale,
+              signLanguage: _selectedModelProfile.signLanguage,
+              modelProfile: _selectedModelProfile.modelProfile,
             );
       if (!mounted) {
         return;
@@ -165,6 +184,60 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
       _activeBridgeUrl = nextUrl;
       _sourceRevision++;
     });
+    unawaited(_loadModelProfiles());
+  }
+
+  Future<void> _loadModelProfiles() async {
+    final requestSerial = ++_profileRequestSerial;
+    final requestBaseUrl = _activeHttpBaseUrl;
+    setState(() {
+      _loadingProfiles = true;
+      _profileLoadError = null;
+    });
+    try {
+      final catalog = await SignModelProfileHttpClient(
+        baseUrl: requestBaseUrl,
+      ).fetchProfiles();
+      if (!mounted || requestSerial != _profileRequestSerial) {
+        return;
+      }
+      setState(() {
+        _modelProfiles = catalog.profiles;
+        _selectedModelProfile = _selectNearestProfile(
+          catalog.profiles,
+          _selectedModelProfile,
+          catalog.defaultProfile,
+        );
+      });
+    } catch (error) {
+      if (!mounted || requestSerial != _profileRequestSerial) {
+        return;
+      }
+      setState(() {
+        _modelProfiles = _fallbackProfiles();
+        _selectedModelProfile = _selectNearestProfile(
+          _modelProfiles,
+          _selectedModelProfile,
+          _profileFromPlatform(_selectedProfile),
+        );
+        _profileLoadError = 'Using bundled profiles: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingProfiles = false;
+        });
+      }
+    }
+  }
+
+  void _selectModelProfile(SignModelProfile profile) {
+    setState(() {
+      _selectedModelProfile = profile;
+      _synthesisResult = null;
+      _synthesisError = null;
+      _sourceRevision++;
+    });
   }
 
   void _handleRecognizedText(String text) {
@@ -179,6 +252,39 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
 
   DemoLandmarkFrameSource _createSource(PlatformSampleProfile profile) {
     return DemoLandmarkFrameSource(profile: profile);
+  }
+
+  SignModelProfile _profileFromPlatform(PlatformSampleProfile profile) {
+    return SignModelProfile(
+      locale: profile.locale,
+      signLanguage: profile.signLanguage,
+      modelProfile: profile.modelProfile,
+    );
+  }
+
+  SignModelProfile _selectNearestProfile(
+    List<SignModelProfile> profiles,
+    SignModelProfile current,
+    SignModelProfile fallback,
+  ) {
+    return profiles.firstWhere(
+      (profile) => profile.modelProfile == current.modelProfile,
+      orElse: () => profiles.firstWhere(
+        (profile) => profile.signLanguage == current.signLanguage,
+        orElse: () => fallback,
+      ),
+    );
+  }
+
+  List<SignModelProfile> _fallbackProfiles() {
+    return platformSampleProfiles
+        .map(_profileFromPlatform)
+        .fold(<String, SignModelProfile>{}, (profiles, profile) {
+          profiles[profile.modelProfile] = profile;
+          return profiles;
+        })
+        .values
+        .toList(growable: false);
   }
 
   @override
@@ -237,6 +343,16 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           onApply: _applyBridgeUrl,
         ),
         const SizedBox(height: 20),
+        _ModelProfileCard(
+          profiles: _modelProfiles,
+          selectedProfile: _selectedModelProfile,
+          loading: _loadingProfiles,
+          error: _profileLoadError,
+          accentColor: _selectedProfile.accentColor,
+          onChanged: _selectModelProfile,
+          onRefresh: _loadModelProfiles,
+        ),
+        const SizedBox(height: 20),
         _ChecklistCard(
           title: 'Platform setup',
           items: _selectedProfile.setupChecklist,
@@ -260,15 +376,11 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           height: 430,
           child: SlrInputWidget(
             key: ValueKey(
-              '${_selectedProfile.id}-$_activeBridgeUrl-$_sourceRevision',
+              '${_selectedProfile.id}-${_selectedModelProfile.modelProfile}-$_activeBridgeUrl-$_sourceRevision',
             ),
             bridgeUrl: _activeBridgeUrl,
             sessionId: 'sample-${_selectedProfile.id}',
-            languageContext: SignLanguageContext(
-              locale: _selectedProfile.locale,
-              signLanguage: _selectedProfile.signLanguage,
-              modelProfile: _selectedProfile.modelProfile,
-            ),
+            languageContext: _selectedModelProfile.toLanguageContext(),
             landmarkFrameSource: _landmarkFrameSource,
             disposeLandmarkFrameSource: true,
             onSignRecognized: _handleRecognizedText,
@@ -289,6 +401,7 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           synthesizing: _synthesizing,
           httpBaseUrl: _activeHttpBaseUrl,
           profile: _selectedProfile,
+          modelProfile: _selectedModelProfile,
           onTextToSign: _synthesizeText,
           onSpeechToSign: _synthesizeSpeech,
         ),
@@ -507,6 +620,105 @@ class _BridgeUrlCard extends StatelessWidget {
   }
 }
 
+class _ModelProfileCard extends StatelessWidget {
+  const _ModelProfileCard({
+    required this.profiles,
+    required this.selectedProfile,
+    required this.loading,
+    required this.error,
+    required this.accentColor,
+    required this.onChanged,
+    required this.onRefresh,
+  });
+
+  final List<SignModelProfile> profiles;
+  final SignModelProfile selectedProfile;
+  final bool loading;
+  final String? error;
+  final Color accentColor;
+  final ValueChanged<SignModelProfile> onChanged;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Model profile',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: loading ? null : onRefresh,
+                icon: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                tooltip: 'Refresh profiles',
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<SignModelProfile>(
+            initialValue: selectedProfile,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Serving profile',
+            ),
+            items: profiles
+                .map(
+                  (profile) => DropdownMenuItem(
+                    value: profile,
+                    child: Text(
+                      '${profile.locale} · ${profile.signLanguage} · ${profile.modelProfile}',
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (profile) {
+              if (profile != null) {
+                onChanged(profile);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _Pill(label: selectedProfile.protocolVersion, color: accentColor),
+              if (selectedProfile.isDefault)
+                _Pill(label: 'default', color: accentColor),
+            ],
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              error!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFB45309),
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _ChecklistCard extends StatelessWidget {
   const _ChecklistCard({
     required this.title,
@@ -618,6 +830,7 @@ class _SynthesisCard extends StatelessWidget {
     required this.synthesizing,
     required this.httpBaseUrl,
     required this.profile,
+    required this.modelProfile,
     required this.onTextToSign,
     required this.onSpeechToSign,
   });
@@ -628,6 +841,7 @@ class _SynthesisCard extends StatelessWidget {
   final bool synthesizing;
   final String httpBaseUrl;
   final PlatformSampleProfile profile;
+  final SignModelProfile modelProfile;
   final VoidCallback onTextToSign;
   final VoidCallback onSpeechToSign;
 
@@ -648,7 +862,7 @@ class _SynthesisCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '$httpBaseUrl · ${profile.locale} · ${profile.signLanguage} · ${profile.modelProfile}',
+            '$httpBaseUrl · ${modelProfile.locale} · ${modelProfile.signLanguage} · ${modelProfile.modelProfile}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: const Color(0xFF64748B),
               fontWeight: FontWeight.w700,
