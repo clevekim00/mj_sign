@@ -4,6 +4,10 @@
 
 English version: [SIGN_GEMMA_RESEARCH.md](./SIGN_GEMMA_RESEARCH.md)
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md)를 참고하세요.
+
 ## 요약
 
 현재 공개적으로 검증 가능한 SignGemma 정보는 아직 제한적입니다. 가장

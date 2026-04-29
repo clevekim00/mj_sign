@@ -2,6 +2,18 @@
 
 English version: [PROJECT_PROMOTION_EN.md](./PROJECT_PROMOTION_EN.md)
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
+
+## 예제 가이드
+
+Spring Boot + SignGemma-compatible cross-platform 실행 예제는
+[SIGN_GEMMA_APP_DEMO_KO.md](./SIGN_GEMMA_APP_DEMO_KO.md)에 정리했습니다.
+영문 가이드는 [SIGN_GEMMA_APP_DEMO.md](./SIGN_GEMMA_APP_DEMO.md)입니다.
+로컬 mock 모델 서버, Spring Boot profile, Flutter 플랫폼별 실행 명령,
+API 확인, 문제 해결 절차를 포함합니다.
+
 ## 한 줄 소개
 
 LinguaSign은 SignBridge 플랫폼 기반으로 수어를 앱, 웹, 데스크톱 입력 경험에 연결하고, 언어별 SignGemma-compatible profile로 확장할 수 있는 크로스 플랫폼 수어 입력 제품입니다.

@@ -5,6 +5,10 @@ This example app is a platform sample gallery for the SignInputKit SDK
 prepared for Android, iPhone, iPad, Web, Windows, macOS/OSX, and Linux while
 keeping the SignBridge backend contract identical.
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](../../PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](../../SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](../../PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](../../SIGN_GEMMA_APP_DEMO_KO.md).
+
 ## What the Sample Demonstrates
 
 - `SlrInputWidget` connected to the Spring SignBridge backend over WebSocket.

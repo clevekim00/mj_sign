@@ -2,6 +2,17 @@
 
 Korean version: [PROJECT_PROMOTION_KO.md](./PROJECT_PROMOTION_KO.md)
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+
+## Demo Guide
+
+The runnable Spring Boot + SignGemma-compatible cross-platform demo is documented
+in [SIGN_GEMMA_APP_DEMO.md](./SIGN_GEMMA_APP_DEMO.md). It covers the local mock
+model server, Spring Boot profile, Flutter platform commands, API checks, and
+troubleshooting.
+
 ## One-Line Pitch
 
 LinguaSign is a cross-platform sign language input product powered by the

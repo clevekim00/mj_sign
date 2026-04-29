@@ -1,6 +1,7 @@
 package com.mj.sign;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -12,6 +13,7 @@ public class HttpSignSynthesisProvider implements SignSynthesisProvider {
     private final RestTemplate restTemplate;
     private final SignSynthesisProperties properties;
 
+    @Autowired
     public HttpSignSynthesisProvider(
             RestTemplateBuilder restTemplateBuilder,
             SignSynthesisProperties properties

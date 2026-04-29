@@ -3,6 +3,7 @@ package com.mj.sign;
 import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
 import com.mj.sign.service.SignTranslationService; // Import Kotlin service
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class AsyncInferenceService {
             "failed to parse protobuf payload"
     ));
 
+    @Autowired
     public AsyncInferenceService(
             InferenceGateway inferenceGateway,
             @Qualifier("inferenceExecutor") Executor inferenceExecutor,

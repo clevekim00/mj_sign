@@ -31,3 +31,7 @@ In order to correct text or data extracted from the sign language recognition mo
 ### [Output Format]
 - Code blocks must be written in Kotlin.
 - Add brief explanations for the role of each component.
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+

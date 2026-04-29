@@ -2,6 +2,10 @@
 
 This document defines how LinguaSign turns text or speech into sign-language motion. To avoid confusion with the common Text-to-Speech meaning of `TTS`, this project uses `T2S(Text-to-Sign)` for text input and `STS(Speech-to-Sign)` for speech input.
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+
 ## Goals
 
 - Add T2S/STS without coupling it to the existing S2T(Sign-to-Text) recognition path.

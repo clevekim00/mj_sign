@@ -4,6 +4,10 @@
 
 ---
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](../PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](../SIGN_GEMMA_APP_DEMO_KO.md)를 참고하세요.
+
 ## 1. 시스템 아키텍처 (Cloud Bridge V2)
 
 SignBridge는 단순히 수어를 텍스트로 바꾸는 것을 넘어, 분산된 GPU 환경과 지연 시간에 민감한 클라이언트 간의 **고성능 브리지(Bridge)** 역할을 수행합니다.

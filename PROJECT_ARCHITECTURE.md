@@ -1,0 +1,101 @@
+# SignBridge Project Architecture
+
+This document is the shared architecture reference for LinguaSign, SignBridge,
+and SignInputKit. Because official SignGemma checkpoints and input specs are
+not publicly verified yet, the runnable demo uses the `sign-gemma` model profile
+as a SignGemma-compatible ASL mock serving contract.
+
+Korean version: [PROJECT_ARCHITECTURE_KO.md](./PROJECT_ARCHITECTURE_KO.md)
+
+## System Overview
+
+```mermaid
+graph TD
+    A["Cross-platform app<br/>Web / iOS / iPad / Android / Windows / macOS / Linux"] --> B["SignInputKit Flutter SDK<br/>slr_input_kit"]
+    B -->|"S2T: protobuf landmark frames<br/>WebSocket /ws/sign"| C["Spring Boot SignBridge"]
+    C --> D["Session buffer<br/>window aggregation<br/>idle timeout flush"]
+    D --> E["Async inference dispatcher"]
+    E --> F{"Inference provider"}
+    F -->|"http"| G["HTTP GPU serving client"]
+    F -->|"grpc"| H["gRPC extension point"]
+    F -->|"queue"| I["Queue inference gateway"]
+    I --> J{"Queue transport"}
+    J -->|"in-memory"| K["Local worker"]
+    J -->|"Kafka"| L["Kafka worker"]
+    J -->|"RabbitMQ"| M["RabbitMQ worker"]
+    G --> N["sign_gemma_mock FastAPI<br/>or real SignGemma-compatible serving"]
+    K --> N
+    L --> N
+    M --> N
+    N -->|"recognized text + metadata"| C
+    C -->|"result event"| B
+    B --> A
+    C --> O["Optional LLM refinement<br/>Gemma/Ollama"]
+    O -->|"natural sentence"| C
+```
+
+## SignGemma Demo Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Cross-platform Flutter app
+    participant SDK as SignInputKit
+    participant Bridge as Spring Boot SignBridge
+    participant Mock as sign_gemma_mock
+
+    App->>SDK: Select platform sample
+    SDK->>Bridge: Connect ws://.../ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma
+    SDK->>Bridge: Send ClientStreamChunk protobuf frames
+    Bridge->>Bridge: Buffer frames and flush window
+    Bridge->>Mock: POST /api/v2/recognize GpuInferenceRequest
+    Mock->>Bridge: GpuInferenceResponse with ASL/English result
+    Bridge->>SDK: WebSocket result event
+    SDK->>App: Render recognized text
+```
+
+## Text/Speech-to-Sign Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Cross-platform Flutter app
+    participant Bridge as Spring Boot SignBridge
+    participant Planner as SignPlanner
+    participant Motion as SignMotionGenerator
+    participant Player as SignOutputWidget
+
+    App->>Bridge: POST /api/v2/sign/synthesize text
+    App->>Bridge: or POST /api/v2/speech/sign transcript
+    Bridge->>Planner: Normalize locale/sign_language/model_profile
+    Planner->>Motion: SignPlan glosses + markers
+    Motion->>Bridge: landmark motion frames
+    Bridge->>App: SignSynthesisResult
+    App->>Player: Play SignPlan + landmark motion
+```
+
+## Runtime Responsibilities
+
+| Area | Responsibility | Current implementation | Replacement / extension point |
+| --- | --- | --- | --- |
+| App | Platform UI, camera permission, input and playback UX | Flutter sample gallery | Product app, kiosk, accessibility input |
+| SignInputKit | WebSocket client, protobuf frame streaming, playback widget | `slr_input_kit` | Real camera landmark extractor |
+| SignBridge | Sessions, buffering, routing, API/SPI, readiness/metrics | Spring Boot | Auth, tenant routing, operations policy |
+| Model serving | S2T inference | `sign_gemma_mock` | Official SignGemma-compatible server |
+| Synthesis | T2S/STS mock motion | `SignPlanner`, `MockSignMotionGenerator` | Real planner, avatar/skeleton renderer |
+| Queue | Async inference transport | in-memory/Kafka/RabbitMQ skeleton | Production broker, DLQ, retry |
+| LLM refinement | Raw keyword refinement | Gemma/Ollama SPI | Language-specific prompt/model policy |
+
+## Deployment View
+
+```mermaid
+graph LR
+    A["Mobile/Desktop/Web app"] -->|"WSS / HTTPS"| B["SignBridge API tier"]
+    B -->|"HTTP/gRPC or queue"| C["Model serving tier"]
+    B -->|"metrics/readiness"| D["Observability"]
+    B -->|"Kafka/RabbitMQ optional"| E["Broker"]
+    E --> C
+    C -->|"GPU/CPU runtime"| F["SignGemma-compatible model"]
+```
+
+In local development, the app, Spring Boot bridge, and `sign_gemma_mock` can run
+on one machine. In production, SignBridge and model serving should be separated
+so GPU model servers or broker workers can scale independently.

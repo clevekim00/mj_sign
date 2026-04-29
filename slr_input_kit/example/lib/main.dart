@@ -47,11 +47,15 @@ class PlatformSampleGallery extends StatefulWidget {
 class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
   final TextEditingController _resultController = TextEditingController();
   final TextEditingController _bridgeUrlController = TextEditingController();
+  final TextEditingController _synthesisController = TextEditingController();
   final List<String> _timeline = <String>[];
 
   late PlatformSampleProfile _selectedProfile;
   late DemoLandmarkFrameSource _landmarkFrameSource;
   late String _activeBridgeUrl;
+  SignSynthesisResult? _synthesisResult;
+  String? _synthesisError;
+  bool _synthesizing = false;
   int _sourceRevision = 0;
 
   @override
@@ -60,6 +64,7 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
     _selectedProfile = platformSampleProfiles.first;
     _activeBridgeUrl = _selectedProfile.recommendedBridgeUrl;
     _bridgeUrlController.text = _activeBridgeUrl;
+    _synthesisController.text = _selectedProfile.synthesisPrompt;
     _landmarkFrameSource = _createSource(_selectedProfile);
   }
 
@@ -67,6 +72,7 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
   void dispose() {
     _resultController.dispose();
     _bridgeUrlController.dispose();
+    _synthesisController.dispose();
     super.dispose();
   }
 
@@ -75,11 +81,79 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
       _selectedProfile = profile;
       _activeBridgeUrl = profile.recommendedBridgeUrl;
       _bridgeUrlController.text = _activeBridgeUrl;
+      _synthesisController.text = profile.synthesisPrompt;
       _landmarkFrameSource = _createSource(profile);
+      _synthesisResult = null;
+      _synthesisError = null;
       _sourceRevision++;
       _timeline.clear();
       _resultController.clear();
     });
+  }
+
+  Future<void> _synthesizeText() async {
+    await _synthesize(sourceType: 'text');
+  }
+
+  Future<void> _synthesizeSpeech() async {
+    await _synthesize(sourceType: 'speech');
+  }
+
+  Future<void> _synthesize({required String sourceType}) async {
+    final text = _synthesisController.text.trim();
+    if (text.isEmpty || _synthesizing) {
+      return;
+    }
+
+    setState(() {
+      _synthesizing = true;
+      _synthesisError = null;
+    });
+
+    final client = SignSynthesisHttpClient(baseUrl: _activeHttpBaseUrl);
+    try {
+      final result = sourceType == 'speech'
+          ? await client.synthesizeSpeechTranscript(
+              sessionId: 'sample-${_selectedProfile.id}-sts',
+              transcript: text,
+              locale: _selectedProfile.locale,
+              signLanguage: _selectedProfile.signLanguage,
+              modelProfile: _selectedProfile.modelProfile,
+            )
+          : await client.synthesizeText(
+              sessionId: 'sample-${_selectedProfile.id}-t2s',
+              text: text,
+              locale: _selectedProfile.locale,
+              signLanguage: _selectedProfile.signLanguage,
+              modelProfile: _selectedProfile.modelProfile,
+            );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _synthesisResult = result;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _synthesisError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _synthesizing = false;
+        });
+      }
+    }
+  }
+
+  String get _activeHttpBaseUrl {
+    final uri = Uri.parse(_activeBridgeUrl);
+    final scheme = uri.scheme == 'wss' ? 'https' : 'http';
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    return '$scheme://${uri.host}$port';
   }
 
   void _applyBridgeUrl() {
@@ -190,6 +264,11 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
             ),
             bridgeUrl: _activeBridgeUrl,
             sessionId: 'sample-${_selectedProfile.id}',
+            languageContext: SignLanguageContext(
+              locale: _selectedProfile.locale,
+              signLanguage: _selectedProfile.signLanguage,
+              modelProfile: _selectedProfile.modelProfile,
+            ),
             landmarkFrameSource: _landmarkFrameSource,
             disposeLandmarkFrameSource: true,
             onSignRecognized: _handleRecognizedText,
@@ -201,6 +280,17 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           controller: _resultController,
           timeline: _timeline,
           accentColor: _selectedProfile.accentColor,
+        ),
+        const SizedBox(height: 20),
+        _SynthesisCard(
+          controller: _synthesisController,
+          result: _synthesisResult,
+          error: _synthesisError,
+          synthesizing: _synthesizing,
+          httpBaseUrl: _activeHttpBaseUrl,
+          profile: _selectedProfile,
+          onTextToSign: _synthesizeText,
+          onSpeechToSign: _synthesizeSpeech,
         ),
         const SizedBox(height: 20),
         _RunCommandCard(profile: _selectedProfile),
@@ -289,7 +379,7 @@ class _HeroCard extends StatelessWidget {
             children: [
               _Pill(label: 'WebSocket bridge', color: profile.accentColor),
               _Pill(label: 'protobuf landmarks', color: profile.accentColor),
-              _Pill(label: 'queue-ready backend', color: profile.accentColor),
+              _Pill(label: profile.modelProfile, color: profile.accentColor),
             ],
           ),
         ],
@@ -513,6 +603,119 @@ class _ResultCard extends StatelessWidget {
               children: timeline
                   .map((entry) => _Pill(label: entry, color: accentColor))
                   .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SynthesisCard extends StatelessWidget {
+  const _SynthesisCard({
+    required this.controller,
+    required this.result,
+    required this.error,
+    required this.synthesizing,
+    required this.httpBaseUrl,
+    required this.profile,
+    required this.onTextToSign,
+    required this.onSpeechToSign,
+  });
+
+  final TextEditingController controller;
+  final SignSynthesisResult? result;
+  final String? error;
+  final bool synthesizing;
+  final String httpBaseUrl;
+  final PlatformSampleProfile profile;
+  final VoidCallback onTextToSign;
+  final VoidCallback onSpeechToSign;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final result = this.result;
+    final errorText = error;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'SignGemma T2S / STS',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '$httpBaseUrl · ${profile.locale} · ${profile.signLanguage} · ${profile.modelProfile}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: controller,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Text or speech transcript',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: synthesizing ? null : onTextToSign,
+                icon: const Icon(Icons.pan_tool_alt_outlined),
+                label: const Text('Text to Sign'),
+              ),
+              OutlinedButton.icon(
+                onPressed: synthesizing ? null : onSpeechToSign,
+                icon: const Icon(Icons.mic_none),
+                label: const Text('Speech to Sign'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 260,
+            child: SignOutputWidget(
+              frames: result?.frames ?? const [],
+              placeholder: synthesizing
+                  ? 'Spring Boot synthesis 호출 중입니다...'
+                  : 'Sign motion preview',
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (errorText != null)
+            Text(
+              errorText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFB91C1C),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else if (result != null)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final gloss in result.glosses)
+                  _Pill(label: gloss, color: profile.accentColor),
+              ],
+            )
+          else
+            Text(
+              'Spring Boot mock provider returns SignPlan + landmark frames; later this same contract can point at an official SignGemma-compatible provider.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF64748B),
+                height: 1.45,
+              ),
             ),
         ],
       ),

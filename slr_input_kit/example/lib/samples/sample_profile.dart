@@ -14,6 +14,10 @@ class PlatformSampleProfile {
     required this.icon,
     required this.setupChecklist,
     required this.productionChecklist,
+    this.locale = 'en-US',
+    this.signLanguage = 'asl',
+    this.modelProfile = 'sign-gemma',
+    this.synthesisPrompt = 'I need help tomorrow.',
   });
 
   final SlrSamplePlatform platform;
@@ -26,6 +30,10 @@ class PlatformSampleProfile {
   final IconData icon;
   final List<String> setupChecklist;
   final List<String> productionChecklist;
+  final String locale;
+  final String signLanguage;
+  final String modelProfile;
+  final String synthesisPrompt;
 
   String get id => platform.name;
 }

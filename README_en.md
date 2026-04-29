@@ -9,11 +9,17 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 - Python mock GPU server: `sign_gemma_mock/`
 - Shared protobuf schema: `schema/`
 - Promotional overview: [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md)
+- Project architecture: [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md) / [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md)
+- SignGemma app demo guide: [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md) / [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md)
 - API / SPI reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
 - BE-model standard protocol: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
 - T2S / STS synthesis design: [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md) / [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md)
 - Language model onboarding guide: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
 - SignGemma research notes: [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md) / [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)
+
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
 
 ## Current Architecture
 

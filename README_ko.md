@@ -9,11 +9,17 @@
 - Python mock GPU 서버: `sign_gemma_mock/`
 - 공용 protobuf 스키마: `schema/`
 - 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md)
+- 프로젝트 아키텍처: [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md) / [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md)
+- SignGemma 앱 예제 가이드: [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md) / [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md)
 - API / SPI Reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
 - BE-Model 표준 프로토콜: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
 - T2S / STS 설계 문서: [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md) / [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md)
 - 언어별 모델 추가 가이드: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
 - SignGemma 조사 노트: [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md) / [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)
+
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
 
 ## 현재 아키텍처
 

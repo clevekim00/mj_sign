@@ -2,6 +2,10 @@
 
 이 문서는 LinguaSign 제품을 구동하는 SignBridge 플랫폼에 새로운 언어/수어 모델을 추가하는 절차와 Sign Gemma 호환 model spec을 정리합니다. 목표는 새 언어를 추가해도 `InferenceGateway`, `QueueInferenceTransport`, WebSocket API를 바꾸지 않는 것입니다.
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+
 ## 기본 원칙
 
 - 언어별 차이는 `InferenceContext`와 model profile에서 처리합니다.

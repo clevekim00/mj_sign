@@ -2,6 +2,10 @@
 
 이 문서는 LinguaSign에서 텍스트나 음성을 수어 motion으로 변환하는 기능을 정의합니다. 혼동을 줄이기 위해 일반적인 Text-to-Speech 의미의 `TTS` 대신 `T2S(Text-to-Sign)`를 기준 용어로 사용하고, 음성 입력은 `STS(Speech-to-Sign)`로 표준화합니다.
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md)를 참고하세요.
+
 ## 목표
 
 - 기존 S2T(Sign-to-Text) 인식 경로와 독립적으로 T2S/STS를 추가합니다.

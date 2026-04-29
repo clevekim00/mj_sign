@@ -8,6 +8,10 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 - [한국어 상세 문서](./README_ko.md)
 - [프로젝트 홍보 문서 (KO)](./PROJECT_PROMOTION_KO.md)
 - [Project Promotion (EN)](./PROJECT_PROMOTION_EN.md)
+- [프로젝트 아키텍처 (KO)](./PROJECT_ARCHITECTURE_KO.md)
+- [Project Architecture (EN)](./PROJECT_ARCHITECTURE.md)
+- [SignGemma 앱 예제 가이드 (KO)](./SIGN_GEMMA_APP_DEMO_KO.md)
+- [SignGemma App Demo Guide (EN)](./SIGN_GEMMA_APP_DEMO.md)
 - [API / SPI Reference](./API_SPI_REFERENCE.md)
 - [BE-Model 표준 프로토콜](./MODEL_PROTOCOL.md)
 - [T2S / STS Synthesis Design (KO)](./SIGN_SYNTHESIS_DESIGN_KO.md)
@@ -17,6 +21,10 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 - [SignGemma Research Notes (EN)](./SIGN_GEMMA_RESEARCH.md)
 - [LLM Integration Prompt](./PROMPT_LLM_INTEGRATION.md)
 - [개선 계획 및 리뷰](./REVIEW_AND_ENHANCEMENT_PLAN.md)
+
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
 
 ## 왜 SignBridge인가
 

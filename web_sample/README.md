@@ -4,6 +4,10 @@
 
 ---
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](../PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](../SIGN_GEMMA_APP_DEMO_KO.md)를 참고하세요.
+
 ## 📌 주요 특징
 
 - **실시간 랜드마크 시각화**: 수어 인식의 핵심인 손과 포즈의 랜드마크 데이터 흐름을 Canvas 애니메이션으로 시각화합니다.

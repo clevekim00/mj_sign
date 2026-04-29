@@ -4,6 +4,10 @@
 
 API/SPI 경계는 `API_SPI_REFERENCE.md`, BE-model envelope는 `MODEL_PROTOCOL.md`, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 `LANGUAGE_MODEL_GUIDE.md`를 기준으로 합니다.
 
+## Project Architecture / 프로젝트 아키텍처
+
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md)를 참고하세요.
+
 ## 1. 현재 시스템 형태
 
 ```mermaid

@@ -4,6 +4,10 @@ This document reflects the current V2 implementation direction in this repositor
 
 The API/SPI boundary is documented in `API_SPI_REFERENCE.md`, the BE-model envelope is documented in `MODEL_PROTOCOL.md`, and new language model onboarding plus the Sign Gemma-compatible model spec are documented in `LANGUAGE_MODEL_GUIDE.md`.
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+
 ## 1. Current System Shape
 
 ```mermaid

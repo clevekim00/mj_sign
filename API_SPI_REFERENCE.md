@@ -2,6 +2,10 @@
 
 이 문서는 LinguaSign 제품을 구동하는 SignBridge 플랫폼에서 외부 client, Spring bridge, inference provider, queue worker, model backend가 만나는 API/SPI 경계를 정리합니다. 목표는 언어가 늘어나도 BE 내부 SPI와 BE-model protocol이 흔들리지 않도록 하는 것입니다.
 
+## Project Architecture
+
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+
 ## 용어
 
 - API: 외부 시스템이나 client가 호출하는 공개 계약입니다.
