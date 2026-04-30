@@ -9,6 +9,7 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 - Python mock GPU server: `sign_gemma_mock/`
 - Shared protobuf schema: `schema/`
 - Promotional overview: [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md)
+- Korean social launch copy: [`SOCIAL_POSTS_KO.md`](./SOCIAL_POSTS_KO.md)
 - Project architecture: [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md) / [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md)
 - SignGemma app demo guide: [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md) / [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md)
 - API / SPI reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
@@ -247,7 +248,15 @@ protobuf WebSocket probe:
 ./scripts/verify_docker_http_stack.sh
 ```
 
-The mock GPU image is built from [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile) and pins Python dependencies through [`requirements.txt`](./sign_gemma_mock/requirements.txt), including the protobuf runtime required by the generated schema.
+The mock GPU image is built from [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile) and pins Python dependencies through [`requirements.txt`](./sign_gemma_mock/requirements.txt), including the protobuf runtime required by the generated schema. For non-Docker local runs, use [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh) so the mock server runtime stays isolated in `sign_gemma_mock/.venv`.
+
+The Flutter sample includes a `Bridge diagnostics` panel. It derives the HTTP
+base URL from the active WebSocket URL and surfaces `/internal/healthz`,
+`/internal/readyz`, `/api/v2/model-profiles`, `/swagger-ui.html`, and
+`/v3/api-docs`. If the bridge is offline, the sample keeps bundled fallback
+profiles and shows the failure reason in the panel.
+The sample also enables automatic WebSocket reconnect with exponential backoff
+for the `SignBridge Stream` widget.
 
 ## Regenerating Protobuf
 
@@ -341,6 +350,19 @@ Access the interactive API documentation at:
 
 The OpenAPI contract includes example request and response payloads for model
 profile discovery, T2S/STS synthesis, readiness, health, and metrics.
+Prometheus text metrics are available at
+`http://localhost:8080/internal/metrics.prometheus`.
+
+To verify the Spring Boot bridge and mock model server without Docker, run:
+
+```bash
+./scripts/setup_mock_venv.sh
+./scripts/verify_spring_openapi_smoke.sh
+```
+
+The smoke script automatically uses `sign_gemma_mock/.venv` when present and
+exits early with a dependency hint when the selected Python protobuf runtime is
+older than the generated mock schema.
 
 Requires a local Ollama server running Gemma 2.
 

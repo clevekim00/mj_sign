@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OperationsControllerTest {
 
@@ -37,6 +38,21 @@ class OperationsControllerTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("READY", response.getBody().get("status"));
+    }
+
+    @Test
+    void returnsPrometheusMetrics() {
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        metricsService.incrementReceivedMessages();
+        OperationsController controller = new OperationsController(
+                metricsService,
+                new StubGpuProbeService(true),
+                properties()
+        );
+
+        String response = controller.prometheusMetrics();
+
+        assertTrue(response.contains("signbridge_received_messages_total 1"));
     }
 
     private static final class StubGpuProbeService extends GpuProbeService {

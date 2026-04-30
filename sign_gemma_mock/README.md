@@ -9,13 +9,13 @@ response.
 
 ```bash
 cd sign_gemma_mock
-python3 -m pip install -r requirements.txt
-python3 main.py
+../scripts/setup_mock_venv.sh
+.venv/bin/python main.py
 ```
 
 The generated Python protobuf module requires a runtime compatible with the
-checked-in schema code. Use `requirements.txt` instead of relying on a globally
-installed `protobuf` package.
+checked-in schema code. Use the project-local `.venv` instead of relying on a
+globally installed `protobuf` package.
 
 Health checks:
 

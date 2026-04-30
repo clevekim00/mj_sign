@@ -9,6 +9,7 @@
 - Python mock GPU 서버: `sign_gemma_mock/`
 - 공용 protobuf 스키마: `schema/`
 - 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md)
+- SNS 홍보 문안: [`SOCIAL_POSTS_KO.md`](./SOCIAL_POSTS_KO.md)
 - 프로젝트 아키텍처: [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md) / [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md)
 - SignGemma 앱 예제 가이드: [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md) / [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md)
 - API / SPI Reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
@@ -243,7 +244,15 @@ T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
 ./scripts/verify_docker_http_stack.sh
 ```
 
-Mock GPU 이미지는 [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile)에서 빌드되며, 생성된 Python protobuf schema와 맞는 runtime은 [`requirements.txt`](./sign_gemma_mock/requirements.txt)로 고정합니다.
+Mock GPU 이미지는 [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile)에서 빌드되며, 생성된 Python protobuf schema와 맞는 runtime은 [`requirements.txt`](./sign_gemma_mock/requirements.txt)로 고정합니다. Docker 없이 로컬에서 실행할 때는 [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh)를 사용해 mock server runtime을 `sign_gemma_mock/.venv`에 격리합니다.
+
+Flutter 샘플 앱의 `Bridge diagnostics` 패널은 현재 WebSocket URL에서 계산한
+HTTP base 기준으로 `/internal/healthz`, `/internal/readyz`,
+`/api/v2/model-profiles`, `/swagger-ui.html`, `/v3/api-docs`를 바로 확인할 수
+있게 합니다. Bridge가 꺼져 있어도 fallback profile은 유지하고, 실패 원인은
+패널에 표시합니다.
+샘플의 `SignBridge Stream` 위젯은 자동 WebSocket 재연결을 켜 두었고, 연결
+실패 시 지수 backoff로 재시도합니다.
 
 ## Protobuf 재생성
 
@@ -340,6 +349,20 @@ curl -X POST http://localhost:8080/api/v2/translate \
 
 OpenAPI 계약에는 model profile discovery, T2S/STS synthesis, readiness,
 health, metrics의 예제 request/response가 포함되어 있습니다.
+Prometheus text metrics는 `http://localhost:8080/internal/metrics.prometheus`에서
+확인할 수 있습니다.
+
+Docker 없이 Spring Boot와 mock model server만 검증하려면 아래 smoke script를
+사용합니다.
+
+```bash
+./scripts/setup_mock_venv.sh
+./scripts/verify_spring_openapi_smoke.sh
+```
+
+이 smoke script는 `sign_gemma_mock/.venv`가 있으면 자동으로 사용하고, 선택된
+Python protobuf runtime이 생성된 mock schema보다 낮으면 즉시 중단하며 의존성
+준비 방법을 안내합니다.
 
 로컬 Ollama 서버에 Gemma 2 모델이 실행 중이어야 합니다.
 

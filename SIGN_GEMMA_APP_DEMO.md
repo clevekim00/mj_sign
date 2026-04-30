@@ -42,8 +42,8 @@ graph TD
 
 ```bash
 cd sign_gemma_mock
-python3 -m pip install -r requirements.txt
-python3 -m uvicorn main:app --host 127.0.0.1 --port 8001
+../scripts/setup_mock_venv.sh
+PORT=8001 .venv/bin/python main.py
 ```
 
 2. Start the Spring Boot bridge.
@@ -121,6 +121,25 @@ Interactive OpenAPI examples are available at
 `http://localhost:8080/swagger-ui.html`. The generated contract includes sample
 payloads for profile discovery, readiness, T2S, and STS.
 
+The Flutter sample also shows these checks in the `Bridge diagnostics` panel.
+It keeps bundled profile fallback data when Spring Boot is offline and reports
+the health/readiness failure reason next to the endpoint links.
+The `SignBridge Stream` widget also retries WebSocket connections with
+exponential backoff in the sample app.
+
+Prometheus metrics:
+
+```bash
+curl -fsS http://127.0.0.1:8080/internal/metrics.prometheus
+```
+
+Docker-free Spring/OpenAPI smoke:
+
+```bash
+./scripts/setup_mock_venv.sh
+./scripts/verify_spring_openapi_smoke.sh
+```
+
 Unsupported profile policy:
 
 ```bash
@@ -185,7 +204,7 @@ Fixture data lives in `eval/fixtures/signbridge_eval_fixtures.json`.
 | Symptom | Check |
 | --- | --- |
 | Spring Boot readiness is `DOWN` | Confirm the mock server port and `sign.gpu.base-url` match |
-| Mock server fails with protobuf runtime version errors | Run `python3 -m pip install -r sign_gemma_mock/requirements.txt`; the generated Python schema requires `protobuf>=7.34.0` |
+| Mock server fails with protobuf runtime version errors | Run `./scripts/setup_mock_venv.sh`; the smoke script automatically uses `sign_gemma_mock/.venv` when present |
 | Android emulator cannot connect | Use `10.0.2.2` instead of `127.0.0.1` |
 | Physical phone/tablet cannot connect | Check host LAN IP, same Wi-Fi, and firewall rules |
 | Browser camera permission fails | Use localhost or an HTTPS secure origin |

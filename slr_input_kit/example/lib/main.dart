@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:slr_input_kit/slr_input_kit.dart';
 
@@ -58,17 +59,21 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
   late DemoLandmarkFrameSource _landmarkFrameSource;
   late String _activeBridgeUrl;
   SignSynthesisResult? _synthesisResult;
+  SignBridgeStatusSnapshot? _bridgeStatus;
   String? _synthesisError;
   String? _profileLoadError;
+  String? _bridgeStatusError;
   bool _synthesizing = false;
   bool _loadingProfiles = false;
+  bool _checkingBridge = false;
   int _profileRequestSerial = 0;
+  int _bridgeProbeSerial = 0;
   int _sourceRevision = 0;
 
   @override
   void initState() {
     super.initState();
-    _selectedProfile = platformSampleProfiles.first;
+    _selectedProfile = _initialPlatformProfile();
     _modelProfiles = _fallbackProfiles();
     _selectedModelProfile = _selectNearestProfile(
       _modelProfiles,
@@ -79,7 +84,25 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
     _bridgeUrlController.text = _activeBridgeUrl;
     _synthesisController.text = _selectedProfile.synthesisPrompt;
     _landmarkFrameSource = _createSource(_selectedProfile);
+    unawaited(_probeBridge());
     unawaited(_loadModelProfiles());
+  }
+
+  PlatformSampleProfile _initialPlatformProfile() {
+    final platform = kIsWeb
+        ? SlrSamplePlatform.web
+        : switch (defaultTargetPlatform) {
+            TargetPlatform.android => SlrSamplePlatform.android,
+            TargetPlatform.iOS => SlrSamplePlatform.ios,
+            TargetPlatform.macOS => SlrSamplePlatform.macos,
+            TargetPlatform.linux => SlrSamplePlatform.linux,
+            TargetPlatform.windows => SlrSamplePlatform.windows,
+            TargetPlatform.fuchsia => SlrSamplePlatform.web,
+          };
+    return platformSampleProfiles.firstWhere(
+      (profile) => profile.platform == platform,
+      orElse: () => platformSampleProfiles.first,
+    );
   }
 
   @override
@@ -104,10 +127,14 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
       _landmarkFrameSource = _createSource(profile);
       _synthesisResult = null;
       _synthesisError = null;
+      _bridgeStatus = null;
+      _bridgeStatusError = null;
       _sourceRevision++;
       _timeline.clear();
       _resultController.clear();
     });
+    unawaited(_probeBridge());
+    unawaited(_loadModelProfiles());
   }
 
   Future<void> _synthesizeText() async {
@@ -184,7 +211,42 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
       _activeBridgeUrl = nextUrl;
       _sourceRevision++;
     });
+    unawaited(_probeBridge());
     unawaited(_loadModelProfiles());
+  }
+
+  Future<void> _probeBridge() async {
+    final requestSerial = ++_bridgeProbeSerial;
+    final requestBaseUrl = _activeHttpBaseUrl;
+    setState(() {
+      _checkingBridge = true;
+      _bridgeStatusError = null;
+    });
+    try {
+      final status = await SignBridgeStatusHttpClient(
+        baseUrl: requestBaseUrl,
+      ).probe();
+      if (!mounted || requestSerial != _bridgeProbeSerial) {
+        return;
+      }
+      setState(() {
+        _bridgeStatus = status;
+        _bridgeStatusError = status.error;
+      });
+    } catch (error) {
+      if (!mounted || requestSerial != _bridgeProbeSerial) {
+        return;
+      }
+      setState(() {
+        _bridgeStatusError = error.toString();
+      });
+    } finally {
+      if (mounted && requestSerial == _bridgeProbeSerial) {
+        setState(() {
+          _checkingBridge = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadModelProfiles() async {
@@ -343,6 +405,15 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
           onApply: _applyBridgeUrl,
         ),
         const SizedBox(height: 20),
+        _BridgeDiagnosticsCard(
+          status: _bridgeStatus,
+          loading: _checkingBridge,
+          error: _bridgeStatusError,
+          httpBaseUrl: _activeHttpBaseUrl,
+          accentColor: _selectedProfile.accentColor,
+          onRefresh: _probeBridge,
+        ),
+        const SizedBox(height: 20),
         _ModelProfileCard(
           profiles: _modelProfiles,
           selectedProfile: _selectedModelProfile,
@@ -383,6 +454,8 @@ class _PlatformSampleGalleryState extends State<PlatformSampleGallery> {
             languageContext: _selectedModelProfile.toLanguageContext(),
             landmarkFrameSource: _landmarkFrameSource,
             disposeLandmarkFrameSource: true,
+            autoReconnect: true,
+            maxReconnectAttempts: 6,
             onSignRecognized: _handleRecognizedText,
             placeholder: '수어 입력을 기다리는 중입니다...',
           ),
@@ -713,6 +786,236 @@ class _ModelProfileCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BridgeDiagnosticsCard extends StatelessWidget {
+  const _BridgeDiagnosticsCard({
+    required this.status,
+    required this.loading,
+    required this.error,
+    required this.httpBaseUrl,
+    required this.accentColor,
+    required this.onRefresh,
+  });
+
+  final SignBridgeStatusSnapshot? status;
+  final bool loading;
+  final String? error;
+  final String httpBaseUrl;
+  final Color accentColor;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final snapshot = status;
+    final healthLabel = snapshot?.healthStatus ?? 'UNKNOWN';
+    final readinessLabel = snapshot?.readinessStatus ?? 'UNKNOWN';
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bridge diagnostics',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: loading ? null : onRefresh,
+                icon: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.monitor_heart_outlined),
+                tooltip: 'Check bridge status',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatusPill(
+                label: 'health $healthLabel',
+                active: snapshot?.healthUp ?? false,
+                color: accentColor,
+              ),
+              _StatusPill(
+                label: 'ready $readinessLabel',
+                active: snapshot?.ready ?? false,
+                color: accentColor,
+              ),
+              if (snapshot?.provider != null)
+                _Pill(
+                  label: 'provider ${snapshot!.provider}',
+                  color: accentColor,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            snapshot?.modelBaseUrl == null
+                ? 'HTTP base: $httpBaseUrl'
+                : 'HTTP base: $httpBaseUrl · model: ${snapshot!.modelBaseUrl}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _EndpointGrid(
+            endpoints: [
+              _EndpointLink(
+                'Readiness',
+                snapshot?.readinessUrl ?? '$httpBaseUrl/internal/readyz',
+              ),
+              _EndpointLink(
+                'Profiles',
+                snapshot?.profilesUrl ?? '$httpBaseUrl/api/v2/model-profiles',
+              ),
+              _EndpointLink(
+                'Swagger UI',
+                snapshot?.swaggerUiUrl ?? '$httpBaseUrl/swagger-ui.html',
+              ),
+              _EndpointLink(
+                'OpenAPI JSON',
+                snapshot?.openApiUrl ?? '$httpBaseUrl/v3/api-docs',
+              ),
+              _EndpointLink(
+                'Prometheus',
+                snapshot?.prometheusMetricsUrl ??
+                    '$httpBaseUrl/internal/metrics.prometheus',
+              ),
+            ],
+            accentColor: accentColor,
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              error!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFB45309),
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EndpointLink {
+  const _EndpointLink(this.label, this.url);
+
+  final String label;
+  final String url;
+}
+
+class _EndpointGrid extends StatelessWidget {
+  const _EndpointGrid({required this.endpoints, required this.accentColor});
+
+  final List<_EndpointLink> endpoints;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final endpoint in endpoints)
+          Tooltip(
+            message: endpoint.url,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: accentColor.withValues(alpha: 0.26)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    endpoint.label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    endpoint.url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.label,
+    required this.active,
+    required this.color,
+  });
+
+  final String label;
+  final bool active;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = active ? color : const Color(0xFF94A3B8);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: active ? 0.14 : 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.38)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            active ? Icons.check_circle : Icons.error_outline,
+            size: 16,
+            color: effectiveColor,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: const Color(0xFF0F172A),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

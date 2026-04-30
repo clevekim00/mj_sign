@@ -44,8 +44,13 @@ echo "Metrics snapshot:"
 METRICS="$(curl -fsS http://127.0.0.1:8080/internal/metrics)"
 printf '%s\n' "$METRICS"
 
-printf '%s\n' "$METRICS" | grep -q '"completed_inferences"[[:space:]]*:[[:space:]]*[1-9]'
-printf '%s\n' "$METRICS" | grep -q '"idle_flushes"'
+printf '%s\n' "$METRICS" | grep -q '"inference_completed"[[:space:]]*:[[:space:]]*[1-9]'
+printf '%s\n' "$METRICS" | grep -q '"idle_flush_triggered"'
+
+echo "Prometheus metrics snapshot:"
+PROMETHEUS="$(curl -fsS http://127.0.0.1:8080/internal/metrics.prometheus)"
+printf '%s\n' "$PROMETHEUS"
+printf '%s\n' "$PROMETHEUS" | grep -q 'signbridge_inference_completed_total'
 
 echo
 echo "RabbitMQ stack verification passed."

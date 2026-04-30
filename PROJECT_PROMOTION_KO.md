@@ -2,6 +2,8 @@
 
 English version: [PROJECT_PROMOTION_EN.md](./PROJECT_PROMOTION_EN.md)
 
+SNS 홍보 문안: [SOCIAL_POSTS_KO.md](./SOCIAL_POSTS_KO.md)
+
 ## Project Architecture / 프로젝트 아키텍처
 
 공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
@@ -17,6 +19,14 @@ API 확인, 문제 해결 절차를 포함합니다.
 ## 한 줄 소개
 
 LinguaSign은 SignBridge 플랫폼 기반으로 수어를 앱, 웹, 데스크톱 입력 경험에 연결하고, 언어별 SignGemma-compatible profile로 확장할 수 있는 크로스 플랫폼 수어 입력 제품입니다.
+
+## 홍보용 핵심 메시지
+
+- 수어 입력을 특정 앱 기능이 아니라 여러 플랫폼에서 재사용 가능한 입력 인프라로 다룹니다.
+- Flutter 기반 SignInputKit, Spring Boot SignBridge, mock/real model serving adapter를 분리해 앱과 모델을 독립적으로 발전시킬 수 있습니다.
+- WebSocket protobuf streaming, profile registry, readiness/metrics, OpenAPI, T2S/STS playback UX까지 제품 골격을 먼저 안정화했습니다.
+- 공식 SignGemma artifact가 공개되면 adapter/profile 자리에 실제 모델을 연결할 수 있도록 준비했습니다.
+- 현재 데모는 실제 모델 성능 홍보가 아니라, 앱-브릿지-모델 서버 계약과 크로스 플랫폼 UX 검증에 초점을 둡니다.
 
 ## 문제 정의
 
@@ -111,7 +121,8 @@ Mock GPU와 bridge를 실행합니다.
 
 ```bash
 cd sign_gemma_mock
-python main.py
+../scripts/setup_mock_venv.sh
+.venv/bin/python main.py
 ```
 
 ```bash
@@ -129,9 +140,11 @@ flutter run
 HTTP 통합 스택을 빠르게 확인하려면 아래 명령을 실행합니다.
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d
-./scripts/verify_english_asl_profile.sh
+./scripts/setup_mock_venv.sh
+MOCK_PORT=18000 ./scripts/verify_spring_openapi_smoke.sh
 ```
+
+Docker가 있는 환경에서는 HTTP/Kafka/RabbitMQ 통합 스택도 검증할 수 있습니다.
 
 Kafka 또는 RabbitMQ queue worker 흐름까지 보여주려면 통합 스택 검증 스크립트를 실행합니다.
 

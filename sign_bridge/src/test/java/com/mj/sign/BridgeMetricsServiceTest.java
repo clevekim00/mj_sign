@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BridgeMetricsServiceTest {
 
@@ -41,5 +42,22 @@ class BridgeMetricsServiceTest {
         assertEquals(1L, counters.get("inference_completed"));
         assertEquals(1L, counters.get("idle_flush_triggered"));
         assertEquals(1L, counters.get("model_protocol_errors"));
+    }
+
+    @Test
+    void exposesPrometheusSnapshot() {
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+
+        metricsService.incrementActiveWebSocketSessions();
+        metricsService.incrementReceivedMessages();
+        metricsService.incrementModelProtocolErrors();
+
+        String prometheus = metricsService.prometheusSnapshot();
+
+        assertTrue(prometheus.contains("# TYPE signbridge_active_websocket_sessions gauge"));
+        assertTrue(prometheus.contains("signbridge_active_websocket_sessions 1"));
+        assertTrue(prometheus.contains("# TYPE signbridge_received_messages_total counter"));
+        assertTrue(prometheus.contains("signbridge_received_messages_total 1"));
+        assertTrue(prometheus.contains("signbridge_model_protocol_errors_total 1"));
     }
 }

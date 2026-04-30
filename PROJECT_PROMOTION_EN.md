@@ -2,6 +2,8 @@
 
 Korean version: [PROJECT_PROMOTION_KO.md](./PROJECT_PROMOTION_KO.md)
 
+Korean social launch copy: [SOCIAL_POSTS_KO.md](./SOCIAL_POSTS_KO.md)
+
 ## Project Architecture
 
 The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
@@ -19,6 +21,14 @@ LinguaSign is a cross-platform sign language input product powered by the
 SignBridge platform. It connects sign input to mobile, web, desktop, and backend
 services while leaving room for language-specific SignGemma-compatible model
 profiles.
+
+## Promotion Message
+
+- Treat sign input as reusable cross-platform input infrastructure, not a one-off app feature.
+- Separate the Flutter SignInputKit, Spring Boot SignBridge, and mock/real model-serving adapters so app and model work can evolve independently.
+- Stabilize the product skeleton first: WebSocket protobuf streaming, model profile registry, readiness/metrics, OpenAPI, and T2S/STS playback UX.
+- Keep an adapter/profile slot ready for official SignGemma artifacts once they become available.
+- The current demo promotes the app-bridge-model contract and cross-platform UX, not final model accuracy.
 
 ## Problem
 
@@ -152,7 +162,8 @@ Run the mock GPU server:
 
 ```bash
 cd sign_gemma_mock
-python main.py
+../scripts/setup_mock_venv.sh
+.venv/bin/python main.py
 ```
 
 Run the Spring bridge:
@@ -172,9 +183,12 @@ flutter run
 For a quick HTTP integrated stack check:
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d
-./scripts/verify_english_asl_profile.sh
+./scripts/setup_mock_venv.sh
+MOCK_PORT=18000 ./scripts/verify_spring_openapi_smoke.sh
 ```
+
+In an environment with Docker installed, the HTTP/Kafka/RabbitMQ integrated
+stacks can be verified as well.
 
 Validate Kafka or RabbitMQ worker flows:
 

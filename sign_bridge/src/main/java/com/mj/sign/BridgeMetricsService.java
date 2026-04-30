@@ -93,4 +93,35 @@ public class BridgeMetricsService {
         snapshot.put("counters", counters);
         return snapshot;
     }
+
+    public String prometheusSnapshot() {
+        StringBuilder builder = new StringBuilder();
+        appendGauge(builder, "active_websocket_sessions", activeWebSocketSessions.get());
+        appendGauge(builder, "buffered_sessions", bufferedSessions.get());
+        appendGauge(builder, "buffered_frames", bufferedFrames.get());
+        appendGauge(builder, "in_flight_inferences", inFlightInferences.get());
+
+        appendCounter(builder, "received_messages", receivedMessages.get());
+        appendCounter(builder, "payload_errors", payloadErrors.get());
+        appendCounter(builder, "dispatch_accepted", dispatchAccepted.get());
+        appendCounter(builder, "dispatch_rejected", dispatchRejected.get());
+        appendCounter(builder, "inference_completed", inferenceCompleted.get());
+        appendCounter(builder, "idle_flush_triggered", idleFlushTriggered.get());
+        appendCounter(builder, "model_protocol_errors", modelProtocolErrors.get());
+        return builder.toString();
+    }
+
+    private void appendGauge(StringBuilder builder, String name, Number value) {
+        appendMetric(builder, name, "gauge", value);
+    }
+
+    private void appendCounter(StringBuilder builder, String name, Number value) {
+        appendMetric(builder, name + "_total", "counter", value);
+    }
+
+    private void appendMetric(StringBuilder builder, String name, String type, Number value) {
+        String metricName = "signbridge_" + name;
+        builder.append("# TYPE ").append(metricName).append(' ').append(type).append('\n');
+        builder.append(metricName).append(' ').append(value).append('\n');
+    }
 }

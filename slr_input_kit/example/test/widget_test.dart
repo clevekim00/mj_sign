@@ -7,6 +7,7 @@ void main() {
     await tester.pumpWidget(const SlrInputKitSampleApp());
 
     expect(find.text('LinguaSign samples'), findsOneWidget);
+    expect(find.text('Bridge diagnostics'), findsOneWidget);
     expect(find.text('Model profile'), findsOneWidget);
     expect(find.text('SignGemma T2S / STS'), findsOneWidget);
   });

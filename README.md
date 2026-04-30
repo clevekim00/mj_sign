@@ -8,6 +8,7 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 - [한국어 상세 문서](./README_ko.md)
 - [프로젝트 홍보 문서 (KO)](./PROJECT_PROMOTION_KO.md)
 - [Project Promotion (EN)](./PROJECT_PROMOTION_EN.md)
+- [SNS 홍보 문안](./SOCIAL_POSTS_KO.md)
 - [프로젝트 아키텍처 (KO)](./PROJECT_ARCHITECTURE_KO.md)
 - [Project Architecture (EN)](./PROJECT_ARCHITECTURE.md)
 - [SignGemma 앱 예제 가이드 (KO)](./SIGN_GEMMA_APP_DEMO_KO.md)
@@ -198,6 +199,14 @@ T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
 로컬 Python에 오래된 `protobuf`가 설치되어 있으면 mock 서버가 schema import 단계에서
 실패할 수 있으므로 requirements 또는 Docker 실행을 사용하세요.
 
+Flutter 샘플 앱의 `Bridge diagnostics` 패널은 현재 WebSocket URL에서 계산한
+HTTP base 기준으로 `/internal/healthz`, `/internal/readyz`,
+`/api/v2/model-profiles`, `/swagger-ui.html`, `/v3/api-docs`를 바로 확인할 수
+있게 합니다. Bridge가 꺼져 있어도 fallback profile은 유지하고, 실패 원인은
+패널에 표시합니다.
+`SignBridge Stream` 위젯은 샘플에서 자동 재연결을 켜 두었고, 연결 실패 시
+지수 backoff로 최대 6회까지 재시도합니다.
+
 ## Protobuf 재생성
 
 공용 schema를 수정한 뒤에는 Python mock, Flutter SDK, Spring proto source를 같은
@@ -259,6 +268,21 @@ Bridge 실행 후 Swagger UI는 `http://localhost:8080/swagger-ui.html`,
 OpenAPI JSON은 `http://localhost:8080/v3/api-docs`에서 확인합니다.
 문서에는 model profile discovery, T2S/STS synthesis, readiness/health/metrics의
 예제 request/response가 포함되어 있습니다.
+Prometheus text metrics는 `http://localhost:8080/internal/metrics.prometheus`에서
+확인할 수 있습니다.
+
+Docker 없이 Spring Boot와 mock model server만 검증하려면 mock 전용 venv를
+만든 뒤 smoke script를 사용합니다.
+
+```bash
+./scripts/setup_mock_venv.sh
+```
+
+```bash
+./scripts/verify_spring_openapi_smoke.sh
+```
+
+이 smoke script는 `sign_gemma_mock/.venv`가 있으면 자동으로 사용합니다.
 
 ## 운영 준비 체크포인트
 

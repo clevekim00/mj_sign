@@ -172,6 +172,8 @@ The SDK also exposes `MediaPipeLandmarkFrameSource`, a production-facing wrapper
 around `CameraLandmarkFrameSource`. It fixes the camera lifecycle, throttling,
 batch limit, and protobuf output contract while letting the host app provide the
 actual MediaPipe, ML Kit, native, or WASM extraction call.
+The wrapper now applies front-camera x-coordinate mirroring and the configured
+hands/pose/face inclusion flags before frames are sent to SignBridge.
 
 ```dart
 final source = MediaPipeLandmarkFrameSource(

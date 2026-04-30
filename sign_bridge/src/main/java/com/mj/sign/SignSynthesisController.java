@@ -56,7 +56,7 @@ public class SignSynthesisController {
                                     value = """
                                             {
                                               "session_id": "demo-t2s-001",
-                                              "event_type": "sign_synthesis.result",
+                                              "event_type": "synthesis_result",
                                               "source_type": "text",
                                               "text": "안녕하세요",
                                               "locale": "ko-KR",
@@ -130,7 +130,7 @@ public class SignSynthesisController {
                                     value = """
                                             {
                                               "session_id": "demo-sts-001",
-                                              "event_type": "sign_synthesis.result",
+                                              "event_type": "synthesis_result",
                                               "source_type": "speech",
                                               "text": "good morning",
                                               "locale": "en-US",

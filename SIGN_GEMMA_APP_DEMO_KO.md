@@ -38,8 +38,8 @@ graph TD
 
 ```bash
 cd sign_gemma_mock
-python3 -m pip install -r requirements.txt
-python3 -m uvicorn main:app --host 127.0.0.1 --port 8001
+../scripts/setup_mock_venv.sh
+PORT=8001 .venv/bin/python main.py
 ```
 
 2. Spring Boot bridge 실행
@@ -115,6 +115,25 @@ curl -fsS http://127.0.0.1:8080/api/v2/model-profiles
 
 대화형 OpenAPI 예제는 `http://localhost:8080/swagger-ui.html`에서 확인할 수
 있습니다. 생성된 계약에는 profile discovery, readiness, T2S, STS 예제가 포함됩니다.
+
+Flutter 샘플의 `Bridge diagnostics` 패널도 같은 확인 흐름을 보여줍니다.
+Spring Boot가 꺼져 있으면 bundled profile fallback을 유지하고,
+health/readiness 실패 원인을 endpoint 링크 옆에 표시합니다.
+샘플 앱의 `SignBridge Stream` 위젯은 WebSocket 연결 실패 시 지수 backoff로
+자동 재연결을 시도합니다.
+
+Prometheus metrics:
+
+```bash
+curl -fsS http://127.0.0.1:8080/internal/metrics.prometheus
+```
+
+Docker 없이 Spring/OpenAPI smoke 검증:
+
+```bash
+./scripts/setup_mock_venv.sh
+./scripts/verify_spring_openapi_smoke.sh
+```
 
 Unsupported profile 정책:
 
@@ -193,7 +212,7 @@ Fixture 데이터는 `eval/fixtures/signbridge_eval_fixtures.json`에 있습니�
 | 증상 | 확인할 것 |
 | --- | --- |
 | Spring Boot readiness가 `DOWN` | `sign_gemma_mock` 서버 port와 `sign.gpu.base-url`이 같은지 확인 |
-| Mock 서버가 protobuf runtime version 오류로 실패 | `python3 -m pip install -r sign_gemma_mock/requirements.txt` 실행. 생성된 Python schema는 `protobuf>=7.34.0`을 요구 |
+| Mock 서버가 protobuf runtime version 오류로 실패 | `./scripts/setup_mock_venv.sh` 실행. smoke script는 `sign_gemma_mock/.venv`가 있으면 자동으로 사용 |
 | Android emulator가 bridge에 연결 안 됨 | `127.0.0.1` 대신 `10.0.2.2` 사용 |
 | 실제 iPhone/iPad/Android 기기가 연결 안 됨 | 같은 Wi-Fi의 host LAN IP와 방화벽 확인 |
 | Web에서 카메라 권한 실패 | localhost 또는 HTTPS secure origin에서 실행 |

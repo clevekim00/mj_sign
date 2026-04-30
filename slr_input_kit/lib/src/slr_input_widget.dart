@@ -19,6 +19,10 @@ class SlrInputWidget extends StatefulWidget {
     this.landmarkFrameSource,
     this.disposeLandmarkFrameSource = false,
     this.autoStreamMockFrames = false,
+    this.autoReconnect = false,
+    this.maxReconnectAttempts = 5,
+    this.reconnectInitialDelay = const Duration(seconds: 1),
+    this.reconnectMaxDelay = const Duration(seconds: 12),
     this.frameInterval = const Duration(milliseconds: 900),
     this.placeholder = '수어로 입력하려면 아이콘을 누르세요...',
   });
@@ -31,6 +35,10 @@ class SlrInputWidget extends StatefulWidget {
   final LandmarkFrameSource? landmarkFrameSource;
   final bool disposeLandmarkFrameSource;
   final bool autoStreamMockFrames;
+  final bool autoReconnect;
+  final int maxReconnectAttempts;
+  final Duration reconnectInitialDelay;
+  final Duration reconnectMaxDelay;
   final Duration frameInterval;
   final String placeholder;
 
@@ -42,13 +50,17 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
   late final SignGemmaClient _client;
   late final String _sessionId;
   Timer? _streamTimer;
+  Timer? _reconnectTimer;
   StreamSubscription<List<LandmarkFrame>>? _landmarkSubscription;
   String _statusText = '';
   String _connectionDetail = '브리지에 연결되지 않았습니다.';
   bool _connected = false;
   bool _connecting = false;
+  bool _disposed = false;
+  bool _manualRetrying = false;
   bool _streamingMockFrames = false;
   bool _streamingSourceFrames = false;
+  int _reconnectAttempts = 0;
 
   @override
   void initState() {
@@ -77,6 +89,7 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
         return;
       }
       setState(() {
+        _reconnectAttempts = 0;
         _statusText = _hasLandmarkInput
             ? '연결되었습니다. 실제 landmark stream을 전송합니다.'
             : widget.autoStreamMockFrames
@@ -100,7 +113,9 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
 
   @override
   void dispose() {
+    _disposed = true;
     _streamTimer?.cancel();
+    _reconnectTimer?.cancel();
     unawaited(_landmarkSubscription?.cancel() ?? Future<void>.value());
     if (widget.disposeLandmarkFrameSource) {
       unawaited(widget.landmarkFrameSource?.dispose() ?? Future<void>.value());
@@ -150,28 +165,39 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     if (!mounted) {
       return;
     }
+    var shouldScheduleReconnect = false;
     setState(() {
       _connecting = state == SignGemmaConnectionState.connecting;
       _connected = state == SignGemmaConnectionState.connected;
       switch (state) {
         case SignGemmaConnectionState.disconnected:
-          _connectionDetail = '브리지 연결이 종료되었습니다.';
+          if (!widget.autoReconnect || _reconnectTimer == null) {
+            _connectionDetail = '브리지 연결이 종료되었습니다.';
+          }
           _stopOutgoingStreams();
+          shouldScheduleReconnect = true;
           break;
         case SignGemmaConnectionState.connecting:
           _connectionDetail = '브리지에 연결 중입니다...';
           break;
         case SignGemmaConnectionState.connected:
           _connectionDetail = '브리지와 연결되었습니다.';
+          _reconnectAttempts = 0;
           break;
         case SignGemmaConnectionState.error:
-          _connectionDetail = detail == null
-              ? '브리지 연결에 실패했습니다.'
-              : '브리지 연결에 실패했습니다: $detail';
+          if (!widget.autoReconnect || _reconnectTimer == null) {
+            _connectionDetail = detail == null
+                ? '브리지 연결에 실패했습니다.'
+                : '브리지 연결에 실패했습니다: $detail';
+          }
           _stopOutgoingStreams();
+          shouldScheduleReconnect = true;
           break;
       }
     });
+    if (shouldScheduleReconnect) {
+      _scheduleReconnectIfNeeded();
+    }
   }
 
   Future<void> _startLandmarkSourceStream() async {
@@ -243,12 +269,54 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
   }
 
   Future<void> _retryConnection() async {
+    _reconnectTimer?.cancel();
     _stopOutgoingStreams();
     setState(() {
       _connected = false;
+      _reconnectAttempts = 0;
     });
+    _manualRetrying = true;
     await _client.disconnect();
+    _manualRetrying = false;
     await _connect();
+  }
+
+  void _scheduleReconnectIfNeeded() {
+    if (!widget.autoReconnect ||
+        _disposed ||
+        _manualRetrying ||
+        _connected ||
+        _reconnectTimer != null) {
+      return;
+    }
+    if (_reconnectAttempts >= widget.maxReconnectAttempts) {
+      setState(() {
+        _statusText = '자동 재연결 한도에 도달했습니다.';
+      });
+      return;
+    }
+
+    final delay = _nextReconnectDelay();
+    _reconnectAttempts++;
+    setState(() {
+      _connectionDetail =
+          '브리지 연결이 끊겼습니다. ${delay.inSeconds}초 후 자동 재연결을 시도합니다. '
+          '($_reconnectAttempts/${widget.maxReconnectAttempts})';
+    });
+    _reconnectTimer = Timer(delay, () {
+      _reconnectTimer = null;
+      if (!_disposed && !_connected && !_connecting) {
+        unawaited(_connect());
+      }
+    });
+  }
+
+  Duration _nextReconnectDelay() {
+    final multiplier = pow(2, _reconnectAttempts).toInt();
+    final millis = widget.reconnectInitialDelay.inMilliseconds * multiplier;
+    return Duration(
+      milliseconds: min(millis, widget.reconnectMaxDelay.inMilliseconds),
+    );
   }
 
   void _stopOutgoingStreams() {
@@ -274,7 +342,10 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     if (widget.autoStreamMockFrames) {
       return '현재 위젯은 브리지 검증용 mock landmark stream을 선택적으로 전송합니다.';
     }
-    return '현재 위젯은 브리지 연결 상태만 검증합니다. 실제 landmark source 연결은 다음 단계 작업입니다.';
+    final reconnect = widget.autoReconnect
+        ? ' 자동 재연결은 최대 ${widget.maxReconnectAttempts}회까지 시도합니다.'
+        : '';
+    return '현재 위젯은 브리지 연결 상태만 검증합니다. 실제 landmark source 연결은 다음 단계 작업입니다.$reconnect';
   }
 
   bool get _hasLandmarkInput =>
