@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class SessionBufferService {
@@ -20,6 +21,7 @@ public class SessionBufferService {
     private final Clock clock;
     private final BridgeMetricsService metricsService;
     private final ConcurrentHashMap<String, BufferState> sessionBuffers = new ConcurrentHashMap<>();
+    private final AtomicInteger totalBufferedFrames = new AtomicInteger(0);
 
     @org.springframework.beans.factory.annotation.Autowired
     public SessionBufferService(
@@ -45,66 +47,90 @@ public class SessionBufferService {
         this.metricsService = metricsService;
     }
 
-    public synchronized BufferedChunkResult append(ClientStreamChunk incomingChunk) {
+    public BufferedChunkResult append(ClientStreamChunk incomingChunk) {
         long now = clock.millis();
+        String sessionId = incomingChunk.getSessionId();
         BufferState state = sessionBuffers.computeIfAbsent(
-                incomingChunk.getSessionId(),
+                sessionId,
                 ignored -> new BufferState()
         );
-        state.frames.addAll(incomingChunk.getFramesList());
-        state.lastUpdatedAtMillis = now;
-        state.scheduleToken++;
-
-        if (state.frames.size() >= maxBufferedFrames) {
-            ClientStreamChunk chunk = buildChunk(incomingChunk.getSessionId(), state.frames);
-            int bufferedFrameCount = state.frames.size();
-            state.frames = trimTail(state.frames);
+        
+        synchronized (state) {
+            int addedFrames = incomingChunk.getFramesCount();
+            state.frames.addAll(incomingChunk.getFramesList());
             state.lastUpdatedAtMillis = now;
-            updateMetrics();
-            return new BufferedChunkResult(true, chunk, bufferedFrameCount, state.scheduleToken, false);
-        }
+            state.scheduleToken++;
+            totalBufferedFrames.addAndGet(addedFrames);
 
-        if (state.frames.size() >= minFramesForInference) {
-            ClientStreamChunk chunk = buildChunk(incomingChunk.getSessionId(), state.frames);
-            int bufferedFrameCount = state.frames.size();
-            sessionBuffers.remove(incomingChunk.getSessionId());
-            updateMetrics();
-            return new BufferedChunkResult(true, chunk, bufferedFrameCount, state.scheduleToken, false);
-        }
+            if (state.frames.size() >= maxBufferedFrames) {
+                ClientStreamChunk chunk = buildChunk(sessionId, state.frames);
+                int bufferedFrameCount = state.frames.size();
+                
+                int keepFrom = Math.max(0, state.frames.size() - minFramesForInference);
+                int removedFrames = keepFrom;
+                state.frames = new ArrayList<>(state.frames.subList(keepFrom, state.frames.size()));
+                totalBufferedFrames.addAndGet(-removedFrames);
+                
+                state.lastUpdatedAtMillis = now;
+                updateMetrics();
+                return new BufferedChunkResult(true, chunk, bufferedFrameCount, state.scheduleToken, false);
+            }
 
-        updateMetrics();
-        return new BufferedChunkResult(
-                false,
-                buildChunk(incomingChunk.getSessionId(), state.frames),
-                state.frames.size(),
-                state.scheduleToken,
-                false
-        );
+            if (state.frames.size() >= minFramesForInference) {
+                ClientStreamChunk chunk = buildChunk(sessionId, state.frames);
+                int bufferedFrameCount = state.frames.size();
+                sessionBuffers.remove(sessionId);
+                totalBufferedFrames.addAndGet(-bufferedFrameCount);
+                updateMetrics();
+                return new BufferedChunkResult(true, chunk, bufferedFrameCount, state.scheduleToken, false);
+            }
+
+            updateMetrics();
+            return new BufferedChunkResult(
+                    false,
+                    buildChunk(sessionId, state.frames),
+                    state.frames.size(),
+                    state.scheduleToken,
+                    false
+            );
+        }
     }
 
-    public synchronized Optional<BufferedChunkResult> flushIfIdle(String sessionId, long scheduleToken) {
+    public Optional<BufferedChunkResult> flushIfIdle(String sessionId, long scheduleToken) {
         BufferState state = sessionBuffers.get(sessionId);
-        if (state == null || state.frames.isEmpty() || state.scheduleToken != scheduleToken) {
+        if (state == null) {
             return Optional.empty();
         }
 
-        long now = clock.millis();
-        if ((now - state.lastUpdatedAtMillis) < idleTimeoutMillis) {
-            return Optional.empty();
-        }
+        synchronized (state) {
+            if (state.frames.isEmpty() || state.scheduleToken != scheduleToken) {
+                return Optional.empty();
+            }
 
-        ClientStreamChunk chunk = buildChunk(sessionId, state.frames);
-        int bufferedFrameCount = state.frames.size();
-        sessionBuffers.remove(sessionId);
-        updateMetrics();
-        return Optional.of(
-                new BufferedChunkResult(true, chunk, bufferedFrameCount, scheduleToken, true)
-        );
+            long now = clock.millis();
+            if ((now - state.lastUpdatedAtMillis) < idleTimeoutMillis) {
+                return Optional.empty();
+            }
+
+            ClientStreamChunk chunk = buildChunk(sessionId, state.frames);
+            int bufferedFrameCount = state.frames.size();
+            sessionBuffers.remove(sessionId);
+            totalBufferedFrames.addAndGet(-bufferedFrameCount);
+            updateMetrics();
+            return Optional.of(
+                    new BufferedChunkResult(true, chunk, bufferedFrameCount, scheduleToken, true)
+            );
+        }
     }
 
-    public synchronized void clear(String sessionId) {
-        sessionBuffers.remove(sessionId);
-        updateMetrics();
+    public void clear(String sessionId) {
+        BufferState state = sessionBuffers.remove(sessionId);
+        if (state != null) {
+            synchronized (state) {
+                totalBufferedFrames.addAndGet(-state.frames.size());
+            }
+            updateMetrics();
+        }
     }
 
     public long idleTimeoutMillis() {
@@ -116,13 +142,7 @@ public class SessionBufferService {
     }
 
     private void updateMetrics() {
-        metricsService.updateBufferState(sessionBuffers.size(), totalBufferedFrames());
-    }
-
-    private int totalBufferedFrames() {
-        return sessionBuffers.values().stream()
-                .mapToInt(state -> state.frames.size())
-                .sum();
+        metricsService.updateBufferState(sessionBuffers.size(), totalBufferedFrames.get());
     }
 
     private ClientStreamChunk buildChunk(String sessionId, List<LandmarkFrame> frames) {
@@ -130,11 +150,6 @@ public class SessionBufferService {
                 .setSessionId(sessionId)
                 .addAllFrames(frames)
                 .build();
-    }
-
-    private List<LandmarkFrame> trimTail(List<LandmarkFrame> frames) {
-        int keepFrom = Math.max(0, frames.size() - minFramesForInference);
-        return new ArrayList<>(frames.subList(keepFrom, frames.size()));
     }
 
     private static final class BufferState {

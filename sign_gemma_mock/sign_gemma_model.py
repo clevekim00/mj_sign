@@ -4,7 +4,7 @@ from profile_registry import SignGemmaProfile
 
 # Set Keras backend to JAX (as used in the notebook)
 os.environ["KERAS_BACKEND"] = "jax"
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "1.00"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 class SignGemmaEngine:
     def __init__(self, profile: SignGemmaProfile):
