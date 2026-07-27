@@ -5,7 +5,6 @@ import com.mj.sign.protos.LandmarkProto.TranslationResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Base64;
-import java.util.List;
 
 @Service
 public class HttpInferenceGateway implements InferenceGateway {
@@ -15,16 +14,19 @@ public class HttpInferenceGateway implements InferenceGateway {
     private final GpuServingClient gpuServingClient;
     private final GpuServingProperties properties;
     private final BridgeMetricsService metricsService;
+    private final InferenceResponseMapper responseMapper;
 
     @Autowired
     public HttpInferenceGateway(
             GpuServingClient gpuServingClient,
             GpuServingProperties properties,
-            BridgeMetricsService metricsService
+            BridgeMetricsService metricsService,
+            InferenceResponseMapper responseMapper
     ) {
         this.gpuServingClient = gpuServingClient;
         this.properties = properties;
         this.metricsService = metricsService;
+        this.responseMapper = responseMapper;
     }
 
     HttpInferenceGateway(
@@ -32,6 +34,14 @@ public class HttpInferenceGateway implements InferenceGateway {
             GpuServingProperties properties
     ) {
         this(gpuServingClient, properties, new BridgeMetricsService());
+    }
+
+    HttpInferenceGateway(
+            GpuServingClient gpuServingClient,
+            GpuServingProperties properties,
+            BridgeMetricsService metricsService
+    ) {
+        this(gpuServingClient, properties, metricsService, new InferenceResponseMapper(metricsService));
     }
 
     @Override
@@ -49,7 +59,7 @@ public class HttpInferenceGateway implements InferenceGateway {
         try {
             return toTranslationResult(chunk.getSessionId(), gpuServingClient.infer(toRequest(chunk, context)), context);
         } catch (Exception error) {
-            return errorResult(chunk.getSessionId(), "Failed to connect to GPU server.");
+            return responseMapper.errorResult(chunk.getSessionId(), "Failed to connect to GPU server.");
         }
     }
 
@@ -80,32 +90,7 @@ public class HttpInferenceGateway implements InferenceGateway {
             GpuInferenceResponse response,
             InferenceContext context
     ) {
-        List<String> validationErrors = ModelProtocolValidator.validateResponse(response, context);
-        if (!validationErrors.isEmpty()) {
-            metricsService.incrementModelProtocolErrors();
-            return errorResult(requestedSessionId, "Model protocol error: " + String.join("; ", validationErrors));
-        }
-
-        String sessionId = isBlank(response.session_id()) ? requestedSessionId : response.session_id();
-        if (!isBlank(response.error())) {
-            return errorResult(sessionId, response.error());
-        }
-
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText(nullToEmpty(response.text()))
-                .setIsFinal(response.is_final() == null || response.is_final())
-                .setConfidence((float) ModelProtocolValidator.normalizedConfidence(response.confidence()))
-                .build();
-    }
-
-    private TranslationResult errorResult(String sessionId, String message) {
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText(message)
-                .setIsFinal(true)
-                .setConfidence(0.0f)
-                .build();
+        return responseMapper.map(requestedSessionId, response, context);
     }
 
     static String joinUrl(String baseUrl, String path) {
@@ -118,11 +103,4 @@ public class HttpInferenceGateway implements InferenceGateway {
         return baseUrl + path;
     }
 
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
-
-    private String nullToEmpty(String value) {
-        return value == null ? "" : value;
-    }
 }

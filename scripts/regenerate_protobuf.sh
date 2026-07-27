@@ -21,11 +21,27 @@ fi
 echo "Using $("$PROTOC_BIN" --version)"
 
 cp "$PROTO_FILE" "$ROOT_DIR/sign/backend/bridge/src/main/proto/landmark.proto"
+cp "$PROTO_FILE" "$ROOT_DIR/sample/backend/web_app/src/proto/landmark.proto"
 
 "$PROTOC_BIN" \
   -I "$ROOT_DIR/sign/common" \
   --python_out="$ROOT_DIR/sample/backend/model_server" \
   "$PROTO_FILE"
+
+PBJS_BIN="$ROOT_DIR/sample/backend/web_app/node_modules/.bin/pbjs"
+PBTS_BIN="$ROOT_DIR/sample/backend/web_app/node_modules/.bin/pbts"
+if [ -x "$PBJS_BIN" ] && [ -x "$PBTS_BIN" ]; then
+  "$PBJS_BIN" \
+    -t static-module \
+    -w es6 \
+    -o "$ROOT_DIR/sample/backend/web_app/src/proto/landmark.js" \
+    "$ROOT_DIR/sample/backend/web_app/src/proto/landmark.proto"
+  "$PBTS_BIN" \
+    -o "$ROOT_DIR/sample/backend/web_app/src/proto/landmark.d.ts" \
+    "$ROOT_DIR/sample/backend/web_app/src/proto/landmark.js"
+else
+  echo "Skipping web protobuf output; run npm ci in sample/backend/web_app first."
+fi
 
 "$PROTOC_BIN" \
   -I "$ROOT_DIR/sign/common" \

@@ -24,8 +24,23 @@ const App: React.FC = () => {
   const mlService = useRef(new SignMLService());
   const bridgeClient = useRef(new SignBridgeClient());
   const synthesisClient = useRef(new SignSynthesisHttpClient());
+  const isLiveRef = useRef(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = () => {
+    isLiveRef.current = false;
+    setIsLive(false);
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+  };
 
   useEffect(() => {
+    const client = bridgeClient.current;
     bridgeClient.current.onResult((data) => {
       if (data.is_final) {
         setTranslatedText(data.text);
@@ -33,12 +48,20 @@ const App: React.FC = () => {
       }
     });
 
-    return () => bridgeClient.current.disconnect();
+    return () => {
+      isLiveRef.current = false;
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+      client.disconnect();
+    };
   }, []);
 
   const startCamera = async () => {
     try {
       setIsLive(true);
+      isLiveRef.current = true;
       setBridgeStatus('connecting');
 
       // 1. Request Camera Permission Immediately (UX First)
@@ -49,6 +72,7 @@ const App: React.FC = () => {
           facingMode: "user"
         } 
       });
+      cameraStreamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -62,16 +86,18 @@ const App: React.FC = () => {
       await mlService.current.init();
       
       bridgeClient.current.onError(() => setBridgeStatus('error'));
-      bridgeClient.current.connect("ws://127.0.0.1:8080/ws/sign");
-      setBridgeStatus('connected');
+      bridgeClient.current.onOpen(() => setBridgeStatus('connected'));
+      bridgeClient.current.onClose(() => setBridgeStatus('idle'));
+      bridgeClient.current.connect();
       setTranslatedText('인식 준비 완료. 수어를 시작하세요.');
 
       // Start processing loop
-      requestAnimationFrame(processFrame);
+      animationFrameRef.current = requestAnimationFrame(processFrame);
       
     } catch (err: any) {
       console.error("Camera Error:", err);
       setIsLive(false);
+      isLiveRef.current = false;
       setBridgeStatus('error');
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -83,7 +109,7 @@ const App: React.FC = () => {
   };
 
   const processFrame = () => {
-    if (!videoRef.current || !canvasRef.current || !isLive) return;
+    if (!videoRef.current || !canvasRef.current || !isLiveRef.current) return;
 
     const result = mlService.current.detect(videoRef.current, performance.now());
     
@@ -93,12 +119,20 @@ const App: React.FC = () => {
       
       // Send every 10th frame or specific logic
       // In a real V2 bridge, we might send every frame and let the bridge buffer
-      bridgeClient.current.sendLandmarks(SESSION_ID, [{
-        right: result.landmarks[0] ? result.landmarks[0][0] : null // Simplified mapping for demo
-      }]);
+      const frame: { left: any[]; right: any[]; timestampMs: number } = {
+        left: [],
+        right: [],
+        timestampMs: Date.now(),
+      };
+      result.landmarks.forEach((hand: any[], index: number) => {
+        const handedness = result.handednesses?.[index]?.[0]?.categoryName?.toLowerCase();
+        if (handedness === 'left') frame.left = hand;
+        else frame.right = hand;
+      });
+      bridgeClient.current.sendLandmarks(SESSION_ID, [frame]);
     }
 
-    requestAnimationFrame(processFrame);
+    animationFrameRef.current = requestAnimationFrame(processFrame);
   };
 
   const drawLandmarks = (landmarks: any[]) => {
@@ -198,7 +232,7 @@ const App: React.FC = () => {
               {bridgeStatus.toUpperCase()}
             </span>
           </motion.div>
-          <button className="p-2.5 glass-panel rounded-xl hover:bg-white/10 transition-all active:scale-95">
+          <button aria-label="설정 열기" className="p-2.5 glass-panel rounded-xl hover:bg-white/10 transition-all active:scale-95">
             <Settings size={20} className="text-text-muted" />
           </button>
         </div>
@@ -231,13 +265,19 @@ const App: React.FC = () => {
                 <div className="absolute top-4 left-4 flex gap-2">
                   <span className="px-3 py-1 bg-red-500/80 backdrop-blur rounded-full text-[10px] font-bold uppercase status-pulse">Live</span>
                   <span className="px-3 py-1 bg-black/40 backdrop-blur rounded-full text-[10px] font-medium text-white/80">60 FPS</span>
+                  <button
+                    onClick={stopCamera}
+                    className="px-3 py-1 bg-black/60 backdrop-blur rounded-full text-[10px] font-bold text-white"
+                  >
+                    카메라 중지
+                  </button>
                 </div>
               </>
             )}
           </div>
           
           {/* Subtitle Display */}
-          <div className="glass-panel p-6 flex items-center gap-6 min-h-[120px] relative overflow-hidden">
+          <div role="status" aria-live="polite" aria-atomic="true" className="glass-panel p-6 flex items-center gap-6 min-h-[120px] relative overflow-hidden">
              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
             <div className="p-4 bg-blue-500/10 rounded-2xl">
               <MessageSquare size={32} className="text-blue-500" />
@@ -269,7 +309,9 @@ const App: React.FC = () => {
                 <ShieldCheck size={18} className="text-blue-400" />
                 <h2 className="font-bold text-lg text-text-main">V2 Insight</h2>
               </div>
-              <span className="text-[10px] bg-slate-800 text-text-muted px-2 py-1 rounded">SSL ACTIVE</span>
+              <span className="text-[10px] bg-slate-800 text-text-muted px-2 py-1 rounded">
+                {window.location.protocol === 'https:' ? 'WSS ACTIVE' : 'LOCAL WS'}
+              </span>
             </div>
             
             <div className="space-y-6">
@@ -307,7 +349,7 @@ const App: React.FC = () => {
                  <span>Session ID:</span>
                  <span className="font-mono text-[10px]">{SESSION_ID}</span>
                </div>
-              <button className="w-full py-4 glass-panel hover:bg-white/5 transition-all text-sm font-bold text-blue-400">
+              <button aria-label="기록 분석 대시보드 열기" className="w-full py-4 glass-panel hover:bg-white/5 transition-all text-sm font-bold text-blue-400">
                 기록 분석 대시보드
               </button>
             </div>
@@ -327,25 +369,28 @@ const App: React.FC = () => {
         className="w-full max-w-4xl mt-8 z-20"
       >
         <div className="glass-panel p-2 flex items-center gap-3 bg-black/40 border-white/5 shadow-2xl">
-          <button className="p-3 text-text-muted hover:text-white transition-colors">
+          <button aria-label="이전 메시지" className="p-3 text-text-muted hover:text-white transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>
           
           <div className="flex-1 relative group">
             <input 
+              aria-label="합성할 메시지"
               type="text" 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="메시지 입력" 
               className="w-full bg-white/5 border border-white/5 focus:border-blue-500/30 rounded-2xl py-3.5 pl-6 pr-12 text-sm font-medium transition-all outline-none placeholder:text-text-muted/40"
             />
-            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-blue-400 transition-colors">
+            <button aria-label="이모지 선택" className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-blue-400 transition-colors">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
             </button>
           </div>
 
           <button 
             onClick={() => setIsSignMode(!isSignMode)}
+            aria-label="수어 입력 모드"
+            aria-pressed={isSignMode}
             className={`p-3.5 rounded-2xl transition-all duration-300 ${isSignMode ? 'bg-blue-500/20' : 'hover:bg-white/5'}`}
           >
             <SignHandIcon />
@@ -356,6 +401,7 @@ const App: React.FC = () => {
             disabled={isSynthesizing || message.trim().length === 0}
             className="p-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-2xl shadow-lg shadow-blue-600/20 transition-all active:scale-95 ml-1"
             title="Text to Sign synthesis"
+            aria-label="텍스트를 수어로 합성"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 14-7-1.5 14L11 17l-4 4V11L5 12z"/></svg>
           </button>

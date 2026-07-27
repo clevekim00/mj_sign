@@ -6,6 +6,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @ConditionalOnProperty(prefix = "sign.gpu", name = "queue-transport", havingValue = "kafka")
@@ -13,18 +14,26 @@ public class SpringKafkaBrokerAdapter implements KafkaBrokerPort {
 
     private final KafkaTemplate<String, QueueBrokerMessage> kafkaTemplate;
     private final QueueReplyStore replyStore;
+    private final GpuServingProperties properties;
 
     public SpringKafkaBrokerAdapter(
             KafkaTemplate<String, QueueBrokerMessage> kafkaTemplate,
-            QueueReplyStore replyStore
+            QueueReplyStore replyStore,
+            GpuServingProperties properties
     ) {
         this.kafkaTemplate = kafkaTemplate;
         this.replyStore = replyStore;
+        this.properties = properties;
     }
 
     @Override
     public void publish(QueueBrokerMessage message) {
-        kafkaTemplate.send(message.requestTopic(), message.requestId(), message);
+        try {
+            kafkaTemplate.send(message.requestTopic(), message.requestId(), message)
+                    .get(properties.getQueuePublishTimeoutMs(), TimeUnit.MILLISECONDS);
+        } catch (Exception error) {
+            throw new IllegalStateException("Kafka request publish failed", error);
+        }
     }
 
     @KafkaListener(

@@ -194,7 +194,7 @@ class SignWebSocketHandlerTest {
     }
 
     @Test
-    void sendsBusyMessageWhenIdleFlushHitsInFlightInference() throws Exception {
+    void queuesIdleFlushWhenInferenceIsAlreadyInFlight() throws Exception {
         MutableClock clock = new MutableClock();
         BridgeMetricsService metricsService = new BridgeMetricsService();
         SessionBufferService bufferService = new SessionBufferService(10, 20, 1000, clock, metricsService);
@@ -218,8 +218,8 @@ class SignWebSocketHandlerTest {
         scheduler.runAll();
         executor.runAll();
 
-        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"status\":\"busy\"")));
-        assertTrue(session.messages.stream().anyMatch(message -> message.contains("Inference already in progress for this session.")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("\"status\":\"queued\"")));
+        assertTrue(session.messages.stream().anyMatch(message -> message.contains("Inference queued for this session.")));
     }
 
     @Test
@@ -352,12 +352,111 @@ class SignWebSocketHandlerTest {
         assertTrue(session.messages.get(1).contains("Buffering 1 frames"));
     }
 
+    @Test
+    void preventsSessionSwitchAndCrossConnectionSessionReuse() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SessionBufferService bufferService = new SessionBufferService(4, 8, 1000, clock, metricsService);
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                bufferService,
+                asyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession first = new RecordingWebSocketSession("owner-1");
+        RecordingWebSocketSession second = new RecordingWebSocketSession("owner-2");
+
+        handler.afterConnectionEstablished(first);
+        handler.afterConnectionEstablished(second);
+        handler.handleBinaryMessage(first, new BinaryMessage(chunk("owned-stream", 1).toByteArray()));
+        handler.handleBinaryMessage(first, new BinaryMessage(chunk("other-stream", 1).toByteArray()));
+        handler.handleBinaryMessage(second, new BinaryMessage(chunk("owned-stream", 1).toByteArray()));
+
+        assertTrue(first.messages.stream().anyMatch(message ->
+                message.contains("\"error_code\":\"session-mismatch\"")
+        ));
+        assertTrue(second.messages.stream().anyMatch(message ->
+                message.contains("\"error_code\":\"session-in-use\"")
+        ));
+    }
+
+    @Test
+    void acceptsV2ChunkWithAckAndRejectsSequenceGap() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                new SessionBufferService(4, 8, 1000, clock, metricsService),
+                asyncInferenceService(new RecordingInferenceGateway(), Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession(
+                "v2-session",
+                URI.create("ws://localhost/ws/sign?stream_protocol_version=signbridge-stream-v2")
+        );
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(session, new BinaryMessage(v2Chunk("stream-v2", 1, false).toByteArray()));
+        handler.handleBinaryMessage(session, new BinaryMessage(v2Chunk("stream-v2", 3, false).toByteArray()));
+
+        assertTrue(session.messages.stream().anyMatch(message ->
+                message.contains("\"event_type\":\"ack\"")
+                        && message.contains("\"ack_sequence\":1")
+        ));
+        assertTrue(session.messages.stream().anyMatch(message ->
+                message.contains("\"error_code\":\"sequence-gap\"")
+                        && message.contains("Expected chunk_sequence 2")
+        ));
+    }
+
+    @Test
+    void v2EndOfSegmentFlushesFramesBelowThreshold() throws Exception {
+        MutableClock clock = new MutableClock();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        RecordingInferenceGateway gateway = new RecordingInferenceGateway();
+        SignWebSocketHandler handler = new SignWebSocketHandler(
+                new SessionBufferService(8, 16, 1000, clock, metricsService),
+                asyncInferenceService(gateway, Runnable::run, metricsService),
+                new ManualIdleFlushScheduler(),
+                metricsService,
+                new ObjectMapper()
+        );
+        RecordingWebSocketSession session = new RecordingWebSocketSession(
+                "v2-eos",
+                URI.create("ws://localhost/ws/sign?stream_protocol_version=signbridge-stream-v2")
+        );
+
+        handler.afterConnectionEstablished(session);
+        handler.handleBinaryMessage(session, new BinaryMessage(v2Chunk("stream-eos", 1, true).toByteArray()));
+
+        assertTrue(gateway.called);
+        assertEquals(1, gateway.lastChunk.getFramesCount());
+        assertTrue(session.messages.stream().anyMatch(message ->
+                message.contains("\"status\":\"segment_complete\"")
+        ));
+    }
+
     private ClientStreamChunk chunk(String sessionId, int frameCount) {
         ClientStreamChunk.Builder builder = ClientStreamChunk.newBuilder().setSessionId(sessionId);
         for (int index = 0; index < frameCount; index++) {
             builder.addFrames(LandmarkFrame.newBuilder().setTimestampMs(index).build());
         }
         return builder.build();
+    }
+
+    private ClientStreamChunk v2Chunk(String sessionId, long sequence, boolean endOfSegment) {
+        return ClientStreamChunk.newBuilder()
+                .setSessionId(sessionId)
+                .addFrames(LandmarkFrame.newBuilder().setTimestampMs(sequence).build())
+                .setChunkSequence(sequence)
+                .setChunkId("chunk-" + sequence)
+                .setSegmentId("segment-1")
+                .setEndOfSegment(endOfSegment)
+                .setSentAtMs(sequence)
+                .setSchemaVersion("mj.sign.ClientStreamChunk/v2")
+                .build();
     }
 
     private SignTranslationService translationService() {

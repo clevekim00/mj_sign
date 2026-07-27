@@ -46,6 +46,33 @@ The full HTTP stack can be smoke-tested from the repository root:
 That script validates Docker build/startup, Spring readiness, model profile
 discovery, text-to-sign synthesis, and WebSocket protobuf streaming.
 
+## Real Recognition Engine
+
+The checked-in server defaults to a mock recognition engine for contract tests.
+A trained checkpoint is intentionally not stored in Git. To attach a real
+landmark-to-text model, provide a Python factory and mount the checkpoint:
+
+```bash
+docker build -f Dockerfile.real -t sign-recognition-real .
+docker run --rm -p 8000:8000 \
+  -e SIGN_RECOGNITION_ENGINE_FACTORY=my_engine:create_engine \
+  -e SIGN_RECOGNITION_CHECKPOINT_PATH=/models/checkpoint \
+  -v /absolute/model/directory:/models:ro \
+  sign-recognition-real
+```
+
+The factory receives the checkpoint path and returns an object whose recognition
+method has this contract:
+
+```python
+def recognize(*, chunk, profile) -> tuple[str, float]:
+    ...
+```
+
+`/ready` returns HTTP 503 until the configured factory and checkpoint load.
+Add provider-specific packages to `requirements-real.txt`; keep weights,
+datasets, caches, and generated artifacts outside the repository.
+
 ## Regenerating Protobuf
 
 When `sign/common/schema/landmark.proto` changes, regenerate the checked-in Python module

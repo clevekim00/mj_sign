@@ -16,6 +16,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.apache.kafka.common.TopicPartition;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -102,11 +106,22 @@ public class KafkaMessageSerdeConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, QueueBrokerMessage> queueBrokerRequestKafkaListenerContainerFactory(
-            ConsumerFactory<String, QueueBrokerMessage> queueBrokerRequestConsumerFactory
+            ConsumerFactory<String, QueueBrokerMessage> queueBrokerRequestConsumerFactory,
+            KafkaTemplate<String, QueueBrokerMessage> queueBrokerMessageKafkaTemplate,
+            GpuServingProperties properties
     ) {
         ConcurrentKafkaListenerContainerFactory<String, QueueBrokerMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(queueBrokerRequestConsumerFactory);
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                queueBrokerMessageKafkaTemplate,
+                (record, error) -> new TopicPartition(properties.getQueueDlqTopic(), record.partition())
+        );
+        long retryCount = Math.max(0, properties.getQueueMaxAttempts() - 1L);
+        factory.setCommonErrorHandler(new DefaultErrorHandler(
+                recoverer,
+                new FixedBackOff(properties.getQueueRetryBackoffMs(), retryCount)
+        ));
         return factory;
     }
 }

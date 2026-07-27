@@ -461,6 +461,68 @@ flowchart TD
     F --> G["7. 운영 메트릭·접근성·E2E"]
 ```
 
+### 8.1 개선 작업 반영 상태
+
+| 순서 | 상태 | 반영 내용 |
+|---|---|---|
+| 1. 프레임 유실·bounded queue | 완료 | 세션별 실행 1건과 bounded 대기열을 두고, 대기열이 가득 찬 경우 청크를 세션 버퍼로 복원한다. 비동기 executor가 작업을 거절해도 세션 잠금이 해제된다. |
+| 2. 인증·WSS·Origin·세션 소유권 | 완료(운영 TLS 제외) | 선택형 Bearer/API token handshake, 허용 Origin 패턴, 연결별 `session_id` 고정, 다른 연결의 세션 재사용 차단, 메시지 크기·속도 제한을 적용했다. WSS 인증서 종료는 배포 환경의 reverse proxy에서 구성해야 한다. |
+| 3. Protocol v2 | 1차 완료 | `chunk_sequence`, `chunk_id`, `segment_id`, `end_of_segment`, `sent_at_ms`, `schema_version`을 추가했다. 중복 ACK, sequence gap, EOS 즉시 flush, 최대 크기·프레임·점 개수, 좌표와 timestamp 검증을 적용했다. v1은 기본값으로 유지한다. |
+| 4. HTTP/Queue 공통 검증 | 완료 | `InferenceResponseMapper`에서 session/profile/protocol 검증, 신뢰도 범위 보정과 공통 오류 결과 생성을 공유한다. |
+| 5. Queue 신뢰성 | 완료(운영 부하 검증 제외) | request id 멱등 캐시, publish timeout, retry/backoff, Kafka/RabbitMQ DLQ, 요청별 reply destination, 인스턴스별 기본 result topic/routing key를 적용했다. |
+| 6. 실제 시각 모델 | 연결 구조 완료 / 모델 미포함 | mock과 실제 엔진을 `RecognitionEngine`으로 분리했다. 외부 factory와 read-only checkpoint mount를 지원하며 모델이 없으면 `/ready`가 503을 반환한다. 학습된 수어 모델·데이터셋·정확도/편향 평가는 별도 제공이 필요하다. |
+| 7. 메트릭·접근성·E2E | 부분 완료 | 대기열·drop·전송 실패·추론 지연 Prometheus 지표, 카메라 권한, 실제 연결 상태, 결과 live region, 키보드 focus와 reduced motion을 반영했다. 실제 모바일 기기·스크린리더·재연결/부하 E2E는 남아 있다. |
+
+### 8.2 Protocol v2 적용 계약
+
+연결 URL:
+
+```text
+/ws/sign?...&protocol_version=signbridge-model-v1
+             &stream_protocol_version=signbridge-stream-v2
+```
+
+- `protocol_version`은 AI 모델 서버 계약 버전이다.
+- `stream_protocol_version`은 클라이언트와 Bridge 사이의 스트리밍 계약 버전이다.
+- v2 청크는 1부터 단조 증가하는 `chunk_sequence`, 연결 내 고유한 `chunk_id`,
+  현재 발화의 `segment_id`, `mj.sign.ClientStreamChunk/v2` schema version을 포함한다.
+- 정상 수신 시 Bridge는 `event_type=ack`, `ack_sequence`, `chunk_id`,
+  `accepted_frames`, `dropped_frames`, `retry_after_ms`를 응답한다.
+- 빈 frame과 `end_of_segment=true` 조합은 남은 버퍼를 즉시 flush한다.
+- 현재 구현은 연결 중 sequence gap을 오류로 반환한다. 재연결 resume token과
+  서버 보존 cursor는 아직 지원하지 않는다.
+
+대표 typed error code:
+
+| 코드 | 의미 | 재시도 |
+|---|---|---|
+| `invalid-v2-envelope` | v2 필수 필드 또는 schema version 오류 | 수정 후 가능 |
+| `sequence-gap` | 예상 순서와 다른 청크 | 현재 연결에서는 순서 복구 필요 |
+| `payload-too-large` | 최대 binary 크기 초과 | 더 작은 청크로 가능 |
+| `too-many-frames` / `too-many-landmarks` | frame 또는 landmark 제한 초과 | 분할/축소 후 가능 |
+| `invalid-coordinate` / `coordinate-out-of-range` | NaN·무한대·좌표 범위 오류 | 입력 수정 후 가능 |
+| `timestamp-regression` | 청크 내부 timestamp 역전 | timestamp 수정 후 가능 |
+| `session-mismatch` / `session-in-use` | 연결의 세션 소유권 위반 | 새 연결/세션으로 가능 |
+| `rate-limit` | 초당 메시지 제한 초과 | backoff 후 재연결 |
+
+운영 설정은 `SIGN_BRIDGE_WS_TOKEN`, Origin 패턴, reverse proxy의 TLS/WSS,
+브로커 자격 증명과 네트워크 격리를 반드시 별도로 구성해야 한다.
+
+### 8.3 검증 결과
+
+2026-07-27 기준 다음 검증을 통과했다.
+
+- Spring Bridge 전체 Gradle 테스트
+- 모델 서버 API 계약 테스트(잘못된 Base64, session mismatch, 정상 mock 응답)
+- React 샘플 ESLint와 production build
+- Docker HTTP 전체 스택: profile, synthesis, WebSocket v1, v2 ACK/EOS
+- Kafka 전체 스택: v1/v2 인식 결과, correlation, 운영 메트릭
+- RabbitMQ 전체 스택: v1/v2 인식 결과, correlation, 운영 메트릭
+
+실제 모델 품질은 위 테스트 범위가 아니다. 체크포인트가 준비되면 수어 사용자와
+함께 문장 정확도, 지연, 피부색·조명·의복·카메라 각도·수어 변이별 편향을 별도로
+평가해야 한다.
+
 Protocol v2에서 먼저 결정할 사항:
 
 1. 좌표계, 정규화, 좌우 반전 및 handedness 기준
@@ -489,11 +551,11 @@ Protocol v2에서 먼저 결정할 사항:
 
 ## 10. 결론
 
-현재 프로젝트는 WebSocket 입력과 AI provider를 분리하고 HTTP·Kafka·RabbitMQ 경로를 실제 통합 테스트할 수 있다는 점에서 좋은 기반을 갖추고 있다. 다만 현재 단계는 **프로토콜과 서버 전송 구조를 검증하는 데모/프레임워크**에 가깝다.
+현재 프로젝트는 WebSocket 입력과 AI provider를 분리하고 HTTP·Kafka·RabbitMQ 경로를 실제 통합 테스트할 수 있으며, 권장 순서의 서버·프로토콜·큐 신뢰성 개선을 반영했다. 다만 실제 학습된 시각 수어 모델은 저장소에 포함하지 않으므로 현재 인식 결과는 **프로토콜과 서버 전송 구조를 검증하는 mock**이다.
 
 운영 가능한 수어 인식 서비스로 발전시키기 위한 최우선 과제:
 
-1. 추론 중 프레임 유실 제거
-2. 실제 전체 랜드마크와 학습된 시각 모델 연결
-3. 인증·WSS·Origin·세션 격리 적용
-4. sequence·ACK·종료·재연결을 포함한 Protocol v2 정의
+1. 외부 학습 체크포인트와 실제 인식 factory 연결
+2. 수어 사용자 참여 정확도·편향·사용성 평가
+3. reverse proxy TLS/WSS와 운영용 인증·비밀 관리
+4. Protocol v2 재연결 resume/cursor와 장시간 부하 E2E

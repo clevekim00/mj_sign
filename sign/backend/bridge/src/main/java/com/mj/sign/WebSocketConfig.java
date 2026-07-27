@@ -12,25 +12,22 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final SignWebSocketHandler signWebSocketHandler;
     private final String[] allowedOriginPatterns;
+    private final String authenticationToken;
 
     public WebSocketConfig(
             SignWebSocketHandler signWebSocketHandler,
-            @Value("${sign.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost}") String[] allowedOriginPatterns
+            @Value("${sign.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost}") String[] allowedOriginPatterns,
+            @Value("${sign.websocket.authentication-token:}") String authenticationToken
     ) {
         this.signWebSocketHandler = signWebSocketHandler;
         this.allowedOriginPatterns = allowedOriginPatterns;
+        this.authenticationToken = authenticationToken;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(signWebSocketHandler, "/ws/sign")
-                .addInterceptors(new org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor() {
-                    @Override
-                    public boolean beforeHandshake(org.springframework.http.server.ServerHttpRequest request, org.springframework.http.server.ServerHttpResponse response, org.springframework.web.socket.WebSocketHandler wsHandler, java.util.Map<String, Object> attributes) throws Exception {
-                        System.out.println("DEBUG: Incoming WebSocket Handshake attempt from: " + request.getRemoteAddress());
-                        return super.beforeHandshake(request, response, wsHandler, attributes);
-                    }
-                })
-                .setAllowedOriginPatterns("*");
+                .addInterceptors(new WebSocketApiKeyHandshakeInterceptor(authenticationToken))
+                .setAllowedOriginPatterns(allowedOriginPatterns);
     }
 }

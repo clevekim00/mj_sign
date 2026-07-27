@@ -244,6 +244,24 @@ export namespace mj {
 
             /** ClientStreamChunk frames */
             frames?: (mj.sign.ILandmarkFrame[]|null);
+
+            /** ClientStreamChunk chunkSequence */
+            chunkSequence?: (number|Long|null);
+
+            /** ClientStreamChunk chunkId */
+            chunkId?: (string|null);
+
+            /** ClientStreamChunk segmentId */
+            segmentId?: (string|null);
+
+            /** ClientStreamChunk endOfSegment */
+            endOfSegment?: (boolean|null);
+
+            /** ClientStreamChunk sentAtMs */
+            sentAtMs?: (number|Long|null);
+
+            /** ClientStreamChunk schemaVersion */
+            schemaVersion?: (string|null);
         }
 
         /** Represents a ClientStreamChunk. */
@@ -260,6 +278,24 @@ export namespace mj {
 
             /** ClientStreamChunk frames. */
             public frames: mj.sign.ILandmarkFrame[];
+
+            /** ClientStreamChunk chunkSequence. */
+            public chunkSequence: (number|Long);
+
+            /** ClientStreamChunk chunkId. */
+            public chunkId: string;
+
+            /** ClientStreamChunk segmentId. */
+            public segmentId: string;
+
+            /** ClientStreamChunk endOfSegment. */
+            public endOfSegment: boolean;
+
+            /** ClientStreamChunk sentAtMs. */
+            public sentAtMs: (number|Long);
+
+            /** ClientStreamChunk schemaVersion. */
+            public schemaVersion: string;
 
             /**
              * Creates a new ClientStreamChunk instance using the specified properties.

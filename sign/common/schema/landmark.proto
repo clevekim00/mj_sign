@@ -31,6 +31,12 @@ message LandmarkFrame {
 message ClientStreamChunk {
   string session_id = 1;
   repeated LandmarkFrame frames = 2; // Support batching multiple frames
+  uint64 chunk_sequence = 3;
+  string chunk_id = 4;
+  string segment_id = 5;
+  bool end_of_segment = 6;
+  int64 sent_at_ms = 7;
+  string schema_version = 8;
 }
 
 message TranslationResult {

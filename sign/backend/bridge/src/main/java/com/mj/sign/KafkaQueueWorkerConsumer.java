@@ -5,6 +5,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 @ConditionalOnProperty(prefix = "sign.gpu", name = "queue-transport", havingValue = "kafka")
 public class KafkaQueueWorkerConsumer {
@@ -39,10 +41,18 @@ public class KafkaQueueWorkerConsumer {
                 )
         );
 
-        queueBrokerReplyKafkaTemplate.send(
-                properties.getQueueResultTopic(),
-                message.requestId(),
-                new QueueBrokerReplyMessage(message.requestId(), message.sessionId(), result.response())
-        );
+        String resultTopic = message.resultTopic() == null || message.resultTopic().isBlank()
+                ? properties.getQueueResultTopic()
+                : message.resultTopic();
+        try {
+            queueBrokerReplyKafkaTemplate.send(
+                            resultTopic,
+                            message.requestId(),
+                            new QueueBrokerReplyMessage(message.requestId(), message.sessionId(), result.response())
+                    )
+                    .get(properties.getQueuePublishTimeoutMs(), TimeUnit.MILLISECONDS);
+        } catch (Exception error) {
+            throw new IllegalStateException("Kafka result publish failed", error);
+        }
     }
 }

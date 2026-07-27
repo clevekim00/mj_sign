@@ -123,6 +123,43 @@ public class SessionBufferService {
         }
     }
 
+    public Optional<BufferedChunkResult> flushNow(String sessionId) {
+        BufferState state = sessionBuffers.get(sessionId);
+        if (state == null) {
+            return Optional.empty();
+        }
+        synchronized (state) {
+            if (state.frames.isEmpty()) {
+                return Optional.empty();
+            }
+            ClientStreamChunk chunk = buildChunk(sessionId, state.frames);
+            int bufferedFrameCount = state.frames.size();
+            sessionBuffers.remove(sessionId, state);
+            totalBufferedFrames.addAndGet(-bufferedFrameCount);
+            updateMetrics();
+            return Optional.of(
+                    new BufferedChunkResult(true, chunk, bufferedFrameCount, state.scheduleToken, false)
+            );
+        }
+    }
+
+    public int restore(ClientStreamChunk chunk) {
+        BufferState state = sessionBuffers.computeIfAbsent(chunk.getSessionId(), ignored -> new BufferState());
+        synchronized (state) {
+            state.frames.addAll(0, chunk.getFramesList());
+            int droppedFrames = Math.max(0, state.frames.size() - maxBufferedFrames);
+            if (droppedFrames > 0) {
+                state.frames = new ArrayList<>(state.frames.subList(droppedFrames, state.frames.size()));
+            }
+            int restoredFrames = chunk.getFramesCount() - droppedFrames;
+            totalBufferedFrames.addAndGet(restoredFrames);
+            state.lastUpdatedAtMillis = clock.millis();
+            state.scheduleToken++;
+            updateMetrics();
+            return droppedFrames;
+        }
+    }
+
     public void clear(String sessionId) {
         BufferState state = sessionBuffers.remove(sessionId);
         if (state != null) {

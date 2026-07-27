@@ -7,6 +7,7 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import java.util.Map;
 
 @Configuration
 @ConditionalOnProperty(prefix = "sign.gpu", name = "queue-transport", havingValue = "rabbitmq")
@@ -19,12 +20,26 @@ public class RabbitMqBrokerConfig {
 
     @Bean
     public Queue queueRequestQueue(GpuServingProperties properties) {
-        return new Queue(properties.getQueueRequestTopic(), true);
+        return new Queue(
+                properties.getQueueRequestTopic(),
+                true,
+                false,
+                false,
+                Map.of(
+                        "x-dead-letter-exchange", properties.getQueueExchange(),
+                        "x-dead-letter-routing-key", properties.getQueueDlqRoutingKey()
+                )
+        );
     }
 
     @Bean
     public Queue queueResultQueue(GpuServingProperties properties) {
         return new Queue(properties.getQueueResultTopic(), true);
+    }
+
+    @Bean
+    public Queue queueDeadLetterQueue(GpuServingProperties properties) {
+        return new Queue(properties.getQueueDlqTopic(), true);
     }
 
     @Bean
@@ -47,5 +62,16 @@ public class RabbitMqBrokerConfig {
         return BindingBuilder.bind(queueResultQueue)
                 .to(queueExchange)
                 .with(properties.getQueueResultRoutingKey());
+    }
+
+    @Bean
+    public Binding queueDeadLetterBinding(
+            Queue queueDeadLetterQueue,
+            DirectExchange queueExchange,
+            GpuServingProperties properties
+    ) {
+        return BindingBuilder.bind(queueDeadLetterQueue)
+                .to(queueExchange)
+                .with(properties.getQueueDlqRoutingKey());
     }
 }

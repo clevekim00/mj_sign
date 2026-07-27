@@ -41,6 +41,7 @@ abstract class AbstractBrokerQueueInferenceTransport implements QueueInferenceTr
         headers.put("transport", "queue");
         headers.put("provider", properties.getProvider());
         headers.put("queue_transport", properties.getQueueTransport());
+        headers.put("result_routing_key", properties.getQueueResultRoutingKey());
 
         return new QueueBrokerMessage(
                 task.requestId(),

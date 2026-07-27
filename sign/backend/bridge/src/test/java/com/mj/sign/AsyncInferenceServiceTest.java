@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AsyncInferenceServiceTest {
 
     @Test
-    void rejectsConcurrentDispatchForSameSessionUntilCompletion() {
+    void queuesConcurrentDispatchForSameSessionWithoutDroppingIt() {
         QueueingExecutor executor = new QueueingExecutor();
         CountingInferenceGateway gateway = new CountingInferenceGateway();
         BridgeMetricsService metricsService = new BridgeMetricsService();
@@ -36,7 +37,7 @@ class AsyncInferenceServiceTest {
         });
 
         assertTrue(firstAccepted);
-        assertFalse(secondAccepted);
+        assertTrue(secondAccepted);
         assertEquals(0, gateway.callCount);
         @SuppressWarnings("unchecked")
         Map<String, Object> counters = (Map<String, Object>) metricsService.snapshot().get("counters");
@@ -46,6 +47,9 @@ class AsyncInferenceServiceTest {
 
         assertEquals(1, gateway.callCount);
         assertEquals("ok", firstResult.get().getText());
+
+        executor.runNext();
+        assertEquals(2, gateway.callCount);
     }
 
     @Test
@@ -63,6 +67,47 @@ class AsyncInferenceServiceTest {
         }));
         executor.runNext();
         assertTrue(service.dispatch("s-2", chunk("s-2"), ignored -> {
+        }));
+    }
+
+    @Test
+    void rejectsOnlyWhenPerSessionPendingQueueIsFull() {
+        QueueingExecutor executor = new QueueingExecutor();
+        BridgeMetricsService metricsService = new BridgeMetricsService();
+        AsyncInferenceService service = new AsyncInferenceService(
+                new CountingInferenceGateway(),
+                executor,
+                metricsService,
+                translationService(),
+                false,
+                0.6f,
+                1
+        );
+
+        assertTrue(service.dispatch("s-full", chunk("s-full"), ignored -> {
+        }));
+        assertTrue(service.dispatch("s-full", chunk("s-full"), ignored -> {
+        }));
+        assertFalse(service.dispatch("s-full", chunk("s-full"), ignored -> {
+        }));
+    }
+
+    @Test
+    void releasesSessionWhenExecutorRejectsTask() {
+        Executor rejectingExecutor = ignored -> {
+            throw new RejectedExecutionException("full");
+        };
+        AtomicReference<TranslationResult> result = new AtomicReference<>();
+        AsyncInferenceService service = new AsyncInferenceService(
+                new CountingInferenceGateway(),
+                rejectingExecutor,
+                new BridgeMetricsService(),
+                translationService()
+        );
+
+        assertTrue(service.dispatch("s-rejected", chunk("s-rejected"), result::set));
+        assertTrue(result.get().getText().startsWith("Async inference failed"));
+        assertTrue(service.dispatch("s-rejected", chunk("s-rejected"), ignored -> {
         }));
     }
 

@@ -19,4 +19,9 @@ public class KafkaBrokerConfig {
     public NewTopic queueResultTopic(GpuServingProperties properties) {
         return TopicBuilder.name(properties.getQueueResultTopic()).build();
     }
+
+    @Bean
+    public NewTopic queueDeadLetterTopic(GpuServingProperties properties) {
+        return TopicBuilder.name(properties.getQueueDlqTopic()).build();
+    }
 }

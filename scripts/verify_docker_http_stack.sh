@@ -72,3 +72,10 @@ else
   docker compose -f "$COMPOSE_FILE" logs --tail=120 >&2
   exit 1
 fi
+
+echo "Checking WebSocket stream protocol v2 ACK/EOS"
+"$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" \
+  --url "$WS_URL" \
+  --stream-v2 \
+  --session-id "docker-http-ws-v2" \
+  --expect-json-field "event_type=result" >/dev/null

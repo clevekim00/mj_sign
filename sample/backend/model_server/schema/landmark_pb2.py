@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15schema/landmark.proto\x12\x07mj.sign\"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"\xb8\x01\n\rLandmarkFrame\x12\x14\n\x0ctimestamp_ms\x18\x01 \x01(\x03\x12#\n\tleft_hand\x18\x02 \x03(\x0b\x32\x10.mj.sign.Point3D\x12$\n\nright_hand\x18\x03 \x03(\x0b\x32\x10.mj.sign.Point3D\x12\x1e\n\x04pose\x18\x04 \x03(\x0b\x32\x10.mj.sign.Point3D\x12&\n\x0c\x66\x61\x63\x65_contour\x18\x05 \x03(\x0b\x32\x10.mj.sign.Point3D\"O\n\x11\x43lientStreamChunk\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12&\n\x06\x66rames\x18\x02 \x03(\x0b\x32\x16.mj.sign.LandmarkFrame\"[\n\x11TranslationResult\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x10\n\x08is_final\x18\x03 \x01(\x08\x12\x12\n\nconfidence\x18\x04 \x01(\x02\x42#\n\x12\x63om.mj.sign.protosB\rLandmarkProtob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15schema/landmark.proto\x12\x07mj.sign\"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"\xb8\x01\n\rLandmarkFrame\x12\x14\n\x0ctimestamp_ms\x18\x01 \x01(\x03\x12#\n\tleft_hand\x18\x02 \x03(\x0b\x32\x10.mj.sign.Point3D\x12$\n\nright_hand\x18\x03 \x03(\x0b\x32\x10.mj.sign.Point3D\x12\x1e\n\x04pose\x18\x04 \x03(\x0b\x32\x10.mj.sign.Point3D\x12&\n\x0c\x66\x61\x63\x65_contour\x18\x05 \x03(\x0b\x32\x10.mj.sign.Point3D\"\xd1\x01\n\x11\x43lientStreamChunk\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12&\n\x06\x66rames\x18\x02 \x03(\x0b\x32\x16.mj.sign.LandmarkFrame\x12\x16\n\x0e\x63hunk_sequence\x18\x03 \x01(\x04\x12\x10\n\x08\x63hunk_id\x18\x04 \x01(\t\x12\x12\n\nsegment_id\x18\x05 \x01(\t\x12\x16\n\x0e\x65nd_of_segment\x18\x06 \x01(\x08\x12\x12\n\nsent_at_ms\x18\x07 \x01(\x03\x12\x16\n\x0eschema_version\x18\x08 \x01(\t\"[\n\x11TranslationResult\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x10\n\x08is_final\x18\x03 \x01(\x08\x12\x12\n\nconfidence\x18\x04 \x01(\x02\x42#\n\x12\x63om.mj.sign.protosB\rLandmarkProtob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,8 +36,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_POINT3D']._serialized_end=76
   _globals['_LANDMARKFRAME']._serialized_start=79
   _globals['_LANDMARKFRAME']._serialized_end=263
-  _globals['_CLIENTSTREAMCHUNK']._serialized_start=265
-  _globals['_CLIENTSTREAMCHUNK']._serialized_end=344
-  _globals['_TRANSLATIONRESULT']._serialized_start=346
-  _globals['_TRANSLATIONRESULT']._serialized_end=437
+  _globals['_CLIENTSTREAMCHUNK']._serialized_start=266
+  _globals['_CLIENTSTREAMCHUNK']._serialized_end=475
+  _globals['_TRANSLATIONRESULT']._serialized_start=477
+  _globals['_TRANSLATIONRESULT']._serialized_end=568
 # @@protoc_insertion_point(module_scope)

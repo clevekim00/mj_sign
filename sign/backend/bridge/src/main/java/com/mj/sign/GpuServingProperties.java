@@ -22,6 +22,11 @@ public class GpuServingProperties {
     private String queueRoutingKey = "sign.inference.request";
     private String queueResultRoutingKey = "sign.inference.result";
     private long queueTimeoutMs = 5000;
+    private long queuePublishTimeoutMs = 3000;
+    private int queueMaxAttempts = 3;
+    private long queueRetryBackoffMs = 500;
+    private String queueDlqTopic = "sign.inference.requests.dlq";
+    private String queueDlqRoutingKey = "sign.inference.request.dlq";
     private long timeoutMs = 2000;
     private long probeTimeoutMs = 1000;
 
@@ -143,6 +148,46 @@ public class GpuServingProperties {
 
     public void setQueueTimeoutMs(long queueTimeoutMs) {
         this.queueTimeoutMs = queueTimeoutMs;
+    }
+
+    public long getQueuePublishTimeoutMs() {
+        return queuePublishTimeoutMs;
+    }
+
+    public void setQueuePublishTimeoutMs(long queuePublishTimeoutMs) {
+        this.queuePublishTimeoutMs = queuePublishTimeoutMs;
+    }
+
+    public int getQueueMaxAttempts() {
+        return queueMaxAttempts;
+    }
+
+    public void setQueueMaxAttempts(int queueMaxAttempts) {
+        this.queueMaxAttempts = queueMaxAttempts;
+    }
+
+    public long getQueueRetryBackoffMs() {
+        return queueRetryBackoffMs;
+    }
+
+    public void setQueueRetryBackoffMs(long queueRetryBackoffMs) {
+        this.queueRetryBackoffMs = queueRetryBackoffMs;
+    }
+
+    public String getQueueDlqTopic() {
+        return queueDlqTopic;
+    }
+
+    public void setQueueDlqTopic(String queueDlqTopic) {
+        this.queueDlqTopic = queueDlqTopic;
+    }
+
+    public String getQueueDlqRoutingKey() {
+        return queueDlqRoutingKey;
+    }
+
+    public void setQueueDlqRoutingKey(String queueDlqRoutingKey) {
+        this.queueDlqRoutingKey = queueDlqRoutingKey;
     }
 
     public long getTimeoutMs() {

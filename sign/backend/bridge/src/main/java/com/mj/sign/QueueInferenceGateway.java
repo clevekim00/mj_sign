@@ -2,6 +2,7 @@ package com.mj.sign;
 
 import com.mj.sign.protos.LandmarkProto.ClientStreamChunk;
 import com.mj.sign.protos.LandmarkProto.TranslationResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -16,13 +17,28 @@ public class QueueInferenceGateway implements InferenceGateway {
 
     private final QueueInferenceTransport queueInferenceTransport;
     private final GpuServingProperties properties;
+    private final InferenceResponseMapper responseMapper;
 
+    @Autowired
     public QueueInferenceGateway(
             QueueInferenceTransport queueInferenceTransport,
-            GpuServingProperties properties
+            GpuServingProperties properties,
+            InferenceResponseMapper responseMapper
     ) {
         this.queueInferenceTransport = queueInferenceTransport;
         this.properties = properties;
+        this.responseMapper = responseMapper;
+    }
+
+    QueueInferenceGateway(
+            QueueInferenceTransport queueInferenceTransport,
+            GpuServingProperties properties
+    ) {
+        this(
+                queueInferenceTransport,
+                properties,
+                new InferenceResponseMapper(new BridgeMetricsService())
+        );
     }
 
     @Override
@@ -60,28 +76,6 @@ public class QueueInferenceGateway implements InferenceGateway {
                 Duration.ofMillis(properties.getQueueTimeoutMs())
         );
 
-        return toTranslationResult(result.response(), chunk.getSessionId());
-    }
-
-    private TranslationResult toTranslationResult(GpuInferenceResponse response, String sessionIdFallback) {
-        String sessionId = response.session_id() == null || response.session_id().isBlank()
-                ? sessionIdFallback
-                : response.session_id();
-
-        if (response.error() != null && !response.error().isBlank()) {
-            return TranslationResult.newBuilder()
-                    .setSessionId(sessionId)
-                    .setText(response.error())
-                    .setIsFinal(true)
-                    .setConfidence(0.0f)
-                    .build();
-        }
-
-        return TranslationResult.newBuilder()
-                .setSessionId(sessionId)
-                .setText(response.text() == null ? "" : response.text())
-                .setIsFinal(response.is_final() == null || response.is_final())
-                .setConfidence(response.confidence() == null ? 0.0f : response.confidence().floatValue())
-                .build();
+        return responseMapper.map(chunk.getSessionId(), result.response(), context);
     }
 }

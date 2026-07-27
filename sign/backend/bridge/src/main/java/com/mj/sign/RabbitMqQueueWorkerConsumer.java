@@ -35,9 +35,15 @@ public class RabbitMqQueueWorkerConsumer {
                 )
         );
 
+        Object configuredRoutingKey = message.headers() == null
+                ? null
+                : message.headers().get("result_routing_key");
+        String resultRoutingKey = configuredRoutingKey == null || configuredRoutingKey.toString().isBlank()
+                ? properties.getQueueResultRoutingKey()
+                : configuredRoutingKey.toString();
         rabbitTemplate.convertAndSend(
                 properties.getQueueExchange(),
-                properties.getQueueResultRoutingKey(),
+                resultRoutingKey,
                 new QueueBrokerReplyMessage(message.requestId(), message.sessionId(), result.response())
         );
     }

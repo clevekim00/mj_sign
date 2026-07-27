@@ -63,12 +63,21 @@ sign:
     queue-broker-mode: loopback
     queue-topic: sign.inference.requests
     queue-request-topic: sign.inference.requests
-    queue-result-topic: sign.inference.results
+    # Instance-scoped reply destination prevents competing Bridge replicas from
+    # consuming and discarding another replica's correlated response.
+    queue-result-topic: ${SIGN_BRIDGE_RESULT_QUEUE:sign.inference.results.${HOSTNAME:local}}
     queue-consumer-group: sign-bridge
     queue-exchange: sign.inference
     queue-routing-key: sign.inference.request
-    queue-result-routing-key: sign.inference.result
+    queue-result-routing-key: ${SIGN_BRIDGE_RESULT_ROUTING_KEY:sign.inference.result.${HOSTNAME:local}}
     queue-timeout-ms: 5000
+    queue-publish-timeout-ms: 3000
+    queue-idempotency-ttl-ms: 300000
+    queue-idempotency-max-entries: 10000
+    queue-max-attempts: 3
+    queue-retry-backoff-ms: 500
+    queue-dlq-topic: sign.inference.requests.dlq
+    queue-dlq-routing-key: sign.inference.request.dlq
     timeout-ms: 2000
     probe-timeout-ms: 1000
   synthesis:
@@ -83,6 +92,13 @@ sign:
     timeout-ms: 3000
   websocket:
     allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost"
+    max-binary-message-bytes: 1048576
+    max-session-id-length: 128
+    max-messages-per-second: 60
+    max-points-per-landmark-group: 512
+    max-absolute-coordinate: 10.0
+    # Set SIGN_BRIDGE_WS_TOKEN in production. Blank keeps local samples compatible.
+    authentication-token: ${SIGN_BRIDGE_WS_TOKEN:}
   window:
     min-frames: 8
     max-buffered-frames: 24
@@ -92,3 +108,4 @@ sign:
     core-pool-size: 2
     max-pool-size: 4
     queue-capacity: 16
+    pending-per-session-capacity: 4

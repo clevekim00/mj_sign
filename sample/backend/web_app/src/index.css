@@ -22,8 +22,24 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-family);
-  overflow: hidden; /* App will handle scroll */
+  overflow: auto;
   -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Glassmorphism Classes */

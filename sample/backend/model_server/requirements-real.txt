@@ -1,0 +1,3 @@
+-r requirements.txt
+# Add the framework/runtime required by the external recognition engine here.
+# Model weights must be mounted at runtime and must not be committed to Git.

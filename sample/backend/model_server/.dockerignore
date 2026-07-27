@@ -3,3 +3,13 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+models/
+checkpoints/
+weights/
+*.gguf
+*.safetensors
+*.onnx
+*.tflite
+*.ckpt
+*.pth
+*.pt

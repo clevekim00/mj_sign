@@ -2,6 +2,8 @@ import os
 import base64
 import random
 import asyncio
+import time
+import binascii
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -15,11 +17,12 @@ except ImportError:
 from schema.landmark_pb2 import ClientStreamChunk
 from logger_config import logger
 from profile_registry import DEFAULT_PROTOCOL_VERSION, normalize_protocol_version, profile_registry
-from sign_gemma_model import engine_registry
+from recognition_engine import build_recognition_engine
 
 app = FastAPI(title="Sign-Gemma Inference Server")
 # Configuration
 USE_REAL_MODEL = os.getenv("USE_REAL_MODEL", "false").lower() == "true"
+recognition_engine = build_recognition_engine(USE_REAL_MODEL)
 PRELOAD_PROFILES = [
     profile.strip()
     for profile in os.getenv("SIGN_GEMMA_PRELOAD_PROFILES", "").split(",")
@@ -39,17 +42,11 @@ class InferenceRequest(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    if USE_REAL_MODEL:
-        profiles = PRELOAD_PROFILES or [profile_registry.default_profile]
-        logger.info("Starting in REAL mode. Preloading profiles: %s", profiles)
-        for profile_name in profiles:
-            profile = profile_registry.get(profile_name)
-            engine_registry.load_profile(profile)
-    else:
-        logger.info(
-            "Starting in MOCK mode. Available profiles: %s",
-            [profile.model_profile for profile in profile_registry.all()],
-        )
+    logger.info(
+        "Starting with recognition engine metadata=%s. Available profiles: %s",
+        recognition_engine.metadata,
+        [profile.model_profile for profile in profile_registry.all()],
+    )
 
 @app.get("/health")
 def health_check():
@@ -57,41 +54,63 @@ def health_check():
         "status": "ok",
         "mode": "real" if USE_REAL_MODEL else "mock",
         "default_profile": profile_registry.default_profile,
-        "loaded_profiles": engine_registry.loaded_profiles(),
+        "loaded_profiles": (
+            [profile.model_profile for profile in profile_registry.all()]
+            if recognition_engine.ready
+            else []
+        ),
         "profiles": [
-            profile.metadata(loaded=engine_registry.is_loaded(profile.model_profile))
+            profile.metadata(loaded=recognition_engine.ready)
             for profile in profile_registry.all()
         ],
+        "recognition_engine": recognition_engine.metadata,
     }
 
 @app.get("/ready")
 def readiness_check():
     default_profile = profile_registry.get(profile_registry.default_profile)
-    loaded = engine_registry.is_loaded(default_profile.model_profile)
-    ready = not USE_REAL_MODEL or loaded
+    ready = recognition_engine.ready
     body = {
         "status": "ready" if ready else "not_ready",
         "mode": "real" if USE_REAL_MODEL else "mock",
         "default_profile": default_profile.model_profile,
-        "loaded_profiles": engine_registry.loaded_profiles(),
+        "loaded_profiles": (
+            [profile.model_profile for profile in profile_registry.all()]
+            if recognition_engine.ready
+            else []
+        ),
         "profiles": [
-            profile.metadata(loaded=engine_registry.is_loaded(profile.model_profile))
+            profile.metadata(loaded=recognition_engine.ready)
             for profile in profile_registry.all()
         ],
+        "recognition_engine": recognition_engine.metadata,
     }
     return JSONResponse(status_code=200 if ready else 503, content=body)
 
 @app.post("/api/v2/recognize")
 async def recognize_sign(req: InferenceRequest):
+    started_at = time.monotonic()
     try:
+        if not recognition_engine.ready:
+            raise HTTPException(status_code=503, detail="Recognition engine is not ready")
         profile = profile_registry.resolve(req.model_profile, req.locale, req.sign_language)
         protocol_version = normalize_protocol_version(req.protocol_version)
         # Decode the base64 protobuf string
-        decoded_bytes = base64.b64decode(req.protobuf_b64)
+        try:
+            decoded_bytes = base64.b64decode(req.protobuf_b64, validate=True)
+        except (binascii.Error, ValueError) as error:
+            raise HTTPException(status_code=400, detail="Invalid base64 protobuf payload") from error
         chunk = landmark_pb2.ClientStreamChunk()
-        chunk.ParseFromString(decoded_bytes)
+        try:
+            chunk.ParseFromString(decoded_bytes)
+        except Exception as error:
+            raise HTTPException(status_code=400, detail="Invalid protobuf payload") from error
         
         frame_count = len(chunk.frames)
+        if chunk.session_id != req.session_id:
+            raise HTTPException(status_code=400, detail="Envelope and protobuf session_id mismatch")
+        if req.frame_count is not None and req.frame_count != frame_count:
+            raise HTTPException(status_code=400, detail="frame_count does not match protobuf payload")
         logger.info(
             "Processing session %s with %s frames locale=%s sign_language=%s model_profile=%s",
             req.session_id,
@@ -104,41 +123,15 @@ async def recognize_sign(req: InferenceRequest):
         if frame_count == 0:
             raise HTTPException(status_code=400, detail="No frames provided")
 
-        # Simulate processing delay
-        delay = random.uniform(0.1, 0.4)
-        await asyncio.sleep(delay)
-
-        if USE_REAL_MODEL:
-            # Landmark-to-keyword decoding is model-specific. Until a trained
-            # visual SignGemma checkpoint is attached, the profile supplies a
-            # keyword hint so the serving contract and profile routing can be
-            # verified end to end.
-            prompt = profile.prompt_for_keywords(profile.keyword_hint())
-            
-            result_text = engine_registry.generate(profile, prompt)
-            logger.info("SignGemma profile %s inference result: %s", profile.model_profile, result_text)
-            
-            return {
-                "session_id": chunk.session_id,
-                "text": result_text,
-                "is_final": True,
-                "confidence": 0.95,
-                "processing_time_ms": int(delay * 1000),
-                "model_version": profile.model_version,
-                "protocol_version": protocol_version,
-                "locale": req.locale or profile.locale,
-                "sign_language": req.sign_language or profile.sign_language,
-                "model_profile": profile.model_profile,
-            }
-        
-        # Mock Response Mode
-        sentences = profile.mock_sentences or ("No mock sentence configured.",)
+        if not USE_REAL_MODEL:
+            await asyncio.sleep(random.uniform(0.1, 0.4))
+        result_text, confidence = recognition_engine.recognize(chunk, profile)
         return {
             "session_id": req.session_id,
-            "text": random.choice(sentences),
+            "text": result_text,
             "is_final": True,
-            "confidence": round(random.uniform(0.85, 0.99), 2),
-            "processing_time_ms": int(delay * 1000),
+            "confidence": max(0.0, min(1.0, confidence)),
+            "processing_time_ms": int((time.monotonic() - started_at) * 1000),
             "model_version": profile.model_version,
             "protocol_version": protocol_version,
             "locale": req.locale or profile.locale,
@@ -146,9 +139,11 @@ async def recognize_sign(req: InferenceRequest):
             "model_profile": profile.model_profile,
         }
 
-    except Exception as e:
-        logger.error(f"Inference error: {str(e)}")
-        return {"error": f"Internal Server Error: {str(e)}"}
+    except HTTPException:
+        raise
+    except Exception as error:
+        logger.exception("Inference error")
+        raise HTTPException(status_code=500, detail="Internal inference error") from error
 
 if __name__ == "__main__":
     import uvicorn

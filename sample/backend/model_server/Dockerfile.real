@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV SIGN_USE_REAL_MODEL=true
+
+WORKDIR /app
+
+COPY requirements.txt requirements-real.txt ./
+RUN pip install --no-cache-dir -r requirements-real.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["python", "main.py"]

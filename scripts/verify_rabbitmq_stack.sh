@@ -44,6 +44,10 @@ echo
 
 echo "Sending WebSocket protobuf probe through RabbitMQ-backed queue path..."
 "$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" --url ws://127.0.0.1:8080/ws/sign
+"$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" \
+  --url ws://127.0.0.1:8080/ws/sign \
+  --stream-v2 \
+  --session-id rabbitmq-v2
 
 echo "Metrics snapshot:"
 METRICS="$(curl -fsS http://127.0.0.1:8080/internal/metrics)"

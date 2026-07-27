@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(ROOT, "sample", "backend", "model_server"))
 from schema import landmark_pb2  # type: ignore
 
 
-def build_chunk(session_id: str, frame_count: int) -> bytes:
+def build_chunk(session_id: str, frame_count: int, stream_v2: bool = False) -> bytes:
     chunk = landmark_pb2.ClientStreamChunk()
     chunk.session_id = session_id
     now_ms = int(time.time() * 1000)
@@ -31,6 +31,13 @@ def build_chunk(session_id: str, frame_count: int) -> bytes:
         right.x = 0.9
         right.y = 0.8
         right.z = 0.7
+    if stream_v2:
+        chunk.chunk_sequence = 1
+        chunk.chunk_id = f"{session_id}-chunk-1"
+        chunk.segment_id = f"{session_id}-segment-1"
+        chunk.end_of_segment = True
+        chunk.sent_at_ms = now_ms
+        chunk.schema_version = "mj.sign.ClientStreamChunk/v2"
     return chunk.SerializeToString()
 
 
@@ -121,6 +128,7 @@ def main() -> int:
     parser.add_argument("--session-id", default=f"probe-{int(time.time())}")
     parser.add_argument("--frame-count", type=int, default=8)
     parser.add_argument("--timeout-seconds", type=float, default=15)
+    parser.add_argument("--stream-v2", action="store_true")
     parser.add_argument(
         "--expect-json-field",
         action="append",
@@ -130,13 +138,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    sock = websocket_connect(args.url)
+    url = args.url
+    if args.stream_v2:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}stream_protocol_version=signbridge-stream-v2"
+    sock = websocket_connect(url)
     sock.settimeout(args.timeout_seconds)
-    send_binary_frame(sock, build_chunk(args.session_id, args.frame_count))
+    send_binary_frame(sock, build_chunk(args.session_id, args.frame_count, args.stream_v2))
 
     deadline = time.time() + args.timeout_seconds
     saw_final = False
     final_message = None
+    saw_ack = False
     while time.time() < deadline:
         opcode, payload = recv_frame(sock)
         if opcode is None:
@@ -148,15 +161,20 @@ def main() -> int:
                 message = json.loads(text)
             except json.JSONDecodeError:
                 continue
+            if message.get("event_type") == "ack" and message.get("ack_sequence") == 1:
+                saw_ack = True
+                if final_message is not None:
+                    break
             if message.get("is_final") is True and message.get("text"):
                 saw_final = True
                 final_message = message
-                break
+                if not args.stream_v2 or saw_ack:
+                    break
         elif opcode == 0x8:
             break
 
     sock.close()
-    if not saw_final or final_message is None:
+    if not saw_final or final_message is None or (args.stream_v2 and not saw_ack):
         return 1
 
     for expectation in args.expect_json_field:

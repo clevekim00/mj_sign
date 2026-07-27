@@ -682,6 +682,12 @@ export const mj = $root.mj = (() => {
              * @interface IClientStreamChunk
              * @property {string|null} [sessionId] ClientStreamChunk sessionId
              * @property {Array.<mj.sign.ILandmarkFrame>|null} [frames] ClientStreamChunk frames
+             * @property {number|Long|null} [chunkSequence] ClientStreamChunk chunkSequence
+             * @property {string|null} [chunkId] ClientStreamChunk chunkId
+             * @property {string|null} [segmentId] ClientStreamChunk segmentId
+             * @property {boolean|null} [endOfSegment] ClientStreamChunk endOfSegment
+             * @property {number|Long|null} [sentAtMs] ClientStreamChunk sentAtMs
+             * @property {string|null} [schemaVersion] ClientStreamChunk schemaVersion
              */
 
             /**
@@ -717,6 +723,54 @@ export const mj = $root.mj = (() => {
             ClientStreamChunk.prototype.frames = $util.emptyArray;
 
             /**
+             * ClientStreamChunk chunkSequence.
+             * @member {number|Long} chunkSequence
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.chunkSequence = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
+             * ClientStreamChunk chunkId.
+             * @member {string} chunkId
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.chunkId = "";
+
+            /**
+             * ClientStreamChunk segmentId.
+             * @member {string} segmentId
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.segmentId = "";
+
+            /**
+             * ClientStreamChunk endOfSegment.
+             * @member {boolean} endOfSegment
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.endOfSegment = false;
+
+            /**
+             * ClientStreamChunk sentAtMs.
+             * @member {number|Long} sentAtMs
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.sentAtMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+            /**
+             * ClientStreamChunk schemaVersion.
+             * @member {string} schemaVersion
+             * @memberof mj.sign.ClientStreamChunk
+             * @instance
+             */
+            ClientStreamChunk.prototype.schemaVersion = "";
+
+            /**
              * Creates a new ClientStreamChunk instance using the specified properties.
              * @function create
              * @memberof mj.sign.ClientStreamChunk
@@ -745,6 +799,18 @@ export const mj = $root.mj = (() => {
                 if (message.frames != null && message.frames.length)
                     for (let i = 0; i < message.frames.length; ++i)
                         $root.mj.sign.LandmarkFrame.encode(message.frames[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                if (message.chunkSequence != null && Object.hasOwnProperty.call(message, "chunkSequence"))
+                    writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.chunkSequence);
+                if (message.chunkId != null && Object.hasOwnProperty.call(message, "chunkId"))
+                    writer.uint32(/* id 4, wireType 2 =*/34).string(message.chunkId);
+                if (message.segmentId != null && Object.hasOwnProperty.call(message, "segmentId"))
+                    writer.uint32(/* id 5, wireType 2 =*/42).string(message.segmentId);
+                if (message.endOfSegment != null && Object.hasOwnProperty.call(message, "endOfSegment"))
+                    writer.uint32(/* id 6, wireType 0 =*/48).bool(message.endOfSegment);
+                if (message.sentAtMs != null && Object.hasOwnProperty.call(message, "sentAtMs"))
+                    writer.uint32(/* id 7, wireType 0 =*/56).int64(message.sentAtMs);
+                if (message.schemaVersion != null && Object.hasOwnProperty.call(message, "schemaVersion"))
+                    writer.uint32(/* id 8, wireType 2 =*/66).string(message.schemaVersion);
                 return writer;
             };
 
@@ -789,6 +855,30 @@ export const mj = $root.mj = (() => {
                             if (!(message.frames && message.frames.length))
                                 message.frames = [];
                             message.frames.push($root.mj.sign.LandmarkFrame.decode(reader, reader.uint32()));
+                            break;
+                        }
+                    case 3: {
+                            message.chunkSequence = reader.uint64();
+                            break;
+                        }
+                    case 4: {
+                            message.chunkId = reader.string();
+                            break;
+                        }
+                    case 5: {
+                            message.segmentId = reader.string();
+                            break;
+                        }
+                    case 6: {
+                            message.endOfSegment = reader.bool();
+                            break;
+                        }
+                    case 7: {
+                            message.sentAtMs = reader.int64();
+                            break;
+                        }
+                    case 8: {
+                            message.schemaVersion = reader.string();
                             break;
                         }
                     default:
@@ -838,6 +928,24 @@ export const mj = $root.mj = (() => {
                             return "frames." + error;
                     }
                 }
+                if (message.chunkSequence != null && message.hasOwnProperty("chunkSequence"))
+                    if (!$util.isInteger(message.chunkSequence) && !(message.chunkSequence && $util.isInteger(message.chunkSequence.low) && $util.isInteger(message.chunkSequence.high)))
+                        return "chunkSequence: integer|Long expected";
+                if (message.chunkId != null && message.hasOwnProperty("chunkId"))
+                    if (!$util.isString(message.chunkId))
+                        return "chunkId: string expected";
+                if (message.segmentId != null && message.hasOwnProperty("segmentId"))
+                    if (!$util.isString(message.segmentId))
+                        return "segmentId: string expected";
+                if (message.endOfSegment != null && message.hasOwnProperty("endOfSegment"))
+                    if (typeof message.endOfSegment !== "boolean")
+                        return "endOfSegment: boolean expected";
+                if (message.sentAtMs != null && message.hasOwnProperty("sentAtMs"))
+                    if (!$util.isInteger(message.sentAtMs) && !(message.sentAtMs && $util.isInteger(message.sentAtMs.low) && $util.isInteger(message.sentAtMs.high)))
+                        return "sentAtMs: integer|Long expected";
+                if (message.schemaVersion != null && message.hasOwnProperty("schemaVersion"))
+                    if (!$util.isString(message.schemaVersion))
+                        return "schemaVersion: string expected";
                 return null;
             };
 
@@ -865,6 +973,32 @@ export const mj = $root.mj = (() => {
                         message.frames[i] = $root.mj.sign.LandmarkFrame.fromObject(object.frames[i]);
                     }
                 }
+                if (object.chunkSequence != null)
+                    if ($util.Long)
+                        (message.chunkSequence = $util.Long.fromValue(object.chunkSequence)).unsigned = true;
+                    else if (typeof object.chunkSequence === "string")
+                        message.chunkSequence = parseInt(object.chunkSequence, 10);
+                    else if (typeof object.chunkSequence === "number")
+                        message.chunkSequence = object.chunkSequence;
+                    else if (typeof object.chunkSequence === "object")
+                        message.chunkSequence = new $util.LongBits(object.chunkSequence.low >>> 0, object.chunkSequence.high >>> 0).toNumber(true);
+                if (object.chunkId != null)
+                    message.chunkId = String(object.chunkId);
+                if (object.segmentId != null)
+                    message.segmentId = String(object.segmentId);
+                if (object.endOfSegment != null)
+                    message.endOfSegment = Boolean(object.endOfSegment);
+                if (object.sentAtMs != null)
+                    if ($util.Long)
+                        (message.sentAtMs = $util.Long.fromValue(object.sentAtMs)).unsigned = false;
+                    else if (typeof object.sentAtMs === "string")
+                        message.sentAtMs = parseInt(object.sentAtMs, 10);
+                    else if (typeof object.sentAtMs === "number")
+                        message.sentAtMs = object.sentAtMs;
+                    else if (typeof object.sentAtMs === "object")
+                        message.sentAtMs = new $util.LongBits(object.sentAtMs.low >>> 0, object.sentAtMs.high >>> 0).toNumber();
+                if (object.schemaVersion != null)
+                    message.schemaVersion = String(object.schemaVersion);
                 return message;
             };
 
@@ -883,8 +1017,23 @@ export const mj = $root.mj = (() => {
                 let object = {};
                 if (options.arrays || options.defaults)
                     object.frames = [];
-                if (options.defaults)
+                if (options.defaults) {
                     object.sessionId = "";
+                    if ($util.Long) {
+                        let long = new $util.Long(0, 0, true);
+                        object.chunkSequence = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.chunkSequence = options.longs === String ? "0" : 0;
+                    object.chunkId = "";
+                    object.segmentId = "";
+                    object.endOfSegment = false;
+                    if ($util.Long) {
+                        let long = new $util.Long(0, 0, false);
+                        object.sentAtMs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.sentAtMs = options.longs === String ? "0" : 0;
+                    object.schemaVersion = "";
+                }
                 if (message.sessionId != null && message.hasOwnProperty("sessionId"))
                     object.sessionId = message.sessionId;
                 if (message.frames && message.frames.length) {
@@ -892,6 +1041,24 @@ export const mj = $root.mj = (() => {
                     for (let j = 0; j < message.frames.length; ++j)
                         object.frames[j] = $root.mj.sign.LandmarkFrame.toObject(message.frames[j], options);
                 }
+                if (message.chunkSequence != null && message.hasOwnProperty("chunkSequence"))
+                    if (typeof message.chunkSequence === "number")
+                        object.chunkSequence = options.longs === String ? String(message.chunkSequence) : message.chunkSequence;
+                    else
+                        object.chunkSequence = options.longs === String ? $util.Long.prototype.toString.call(message.chunkSequence) : options.longs === Number ? new $util.LongBits(message.chunkSequence.low >>> 0, message.chunkSequence.high >>> 0).toNumber(true) : message.chunkSequence;
+                if (message.chunkId != null && message.hasOwnProperty("chunkId"))
+                    object.chunkId = message.chunkId;
+                if (message.segmentId != null && message.hasOwnProperty("segmentId"))
+                    object.segmentId = message.segmentId;
+                if (message.endOfSegment != null && message.hasOwnProperty("endOfSegment"))
+                    object.endOfSegment = message.endOfSegment;
+                if (message.sentAtMs != null && message.hasOwnProperty("sentAtMs"))
+                    if (typeof message.sentAtMs === "number")
+                        object.sentAtMs = options.longs === String ? String(message.sentAtMs) : message.sentAtMs;
+                    else
+                        object.sentAtMs = options.longs === String ? $util.Long.prototype.toString.call(message.sentAtMs) : options.longs === Number ? new $util.LongBits(message.sentAtMs.low >>> 0, message.sentAtMs.high >>> 0).toNumber() : message.sentAtMs;
+                if (message.schemaVersion != null && message.hasOwnProperty("schemaVersion"))
+                    object.schemaVersion = message.schemaVersion;
                 return object;
             };
 
