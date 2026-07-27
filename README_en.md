@@ -4,23 +4,23 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 
 - Platform/product branding: SignBridge platform powering the LinguaSign product
 - SDK brand: SignInputKit, currently kept as package `slr_input_kit`
-- Flutter client plugin: `slr_input_kit/`
-- Spring Boot bridge: `sign_bridge/`
-- Python mock GPU server: `sign_gemma_mock/`
-- Shared protobuf schema: `schema/`
-- Promotional overview: [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md)
-- Korean social launch copy: [`SOCIAL_POSTS_KO.md`](./SOCIAL_POSTS_KO.md)
-- Project architecture: [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md) / [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md)
-- SignGemma app demo guide: [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md) / [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md)
-- API / SPI reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
-- BE-model standard protocol: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
-- T2S / STS synthesis design: [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md) / [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md)
-- Language model onboarding guide: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
-- SignGemma research notes: [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md) / [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)
+- Flutter client plugin: `sign/embedded/`
+- Spring Boot bridge: `sign/backend/bridge/`
+- Python mock GPU server: `sample/backend/model_server/`
+- Shared protobuf schema: `sign/common/schema/`
+- Promotional overview: [`PROJECT_PROMOTION_EN.md`](./docs/embedded/PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./docs/embedded/PROJECT_PROMOTION_KO.md)
+- Korean social launch copy: [`SOCIAL_POSTS_KO.md`](./docs/backend/SOCIAL_POSTS_KO.md)
+- Project architecture: [`PROJECT_ARCHITECTURE.md`](./docs/backend/PROJECT_ARCHITECTURE.md) / [`PROJECT_ARCHITECTURE_KO.md`](./docs/backend/PROJECT_ARCHITECTURE_KO.md)
+- SignGemma app demo guide: [`SIGN_GEMMA_APP_DEMO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO.md) / [`SIGN_GEMMA_APP_DEMO_KO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md)
+- API / SPI reference: [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md)
+- BE-model standard protocol: [`MODEL_PROTOCOL.md`](./docs/backend/MODEL_PROTOCOL.md)
+- T2S / STS synthesis design: [`SIGN_SYNTHESIS_DESIGN.md`](./docs/backend/SIGN_SYNTHESIS_DESIGN.md) / [`SIGN_SYNTHESIS_DESIGN_KO.md`](./docs/backend/SIGN_SYNTHESIS_DESIGN_KO.md)
+- Language model onboarding guide: [`LANGUAGE_MODEL_GUIDE.md`](./docs/backend/LANGUAGE_MODEL_GUIDE.md)
+- SignGemma research notes: [`SIGN_GEMMA_RESEARCH.md`](./docs/embedded/SIGN_GEMMA_RESEARCH.md) / [`SIGN_GEMMA_RESEARCH_KO.md`](./docs/embedded/SIGN_GEMMA_RESEARCH_KO.md)
 
 ## Project Architecture
 
-The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md).
+The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](docs/backend/PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](docs/backend/SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](docs/backend/PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](docs/backend/SIGN_GEMMA_APP_DEMO_KO.md).
 
 ## Current Architecture
 
@@ -86,18 +86,17 @@ The contract remains executable today via the in-memory transport plus an HTTP-b
 
 ## Repository Structure
 
-- `slr_input_kit/`
-  SignInputKit SDK public API, demo widget, protobuf models, SignBridge client, and platform sample gallery
-- `sign_bridge/`
-  Spring Boot WebSocket bridge (Kotlin/build.gradle.kts), buffering logic, async dispatch, provider routing, queue worker contract, and **Gemma 2 LLM translation layer**.
-- `sign_gemma_mock/`
-  FastAPI mock serving backend following the current HTTP inference contract
-- `schema/`
-  Shared protobuf schema across Flutter, Java, and Python
+- `sign/embedded/`: embeddable SignInputKit SDK
+- `sign/backend/`: remote recognition backend
+- `sign/common/`: shared protobuf and evaluation contracts
+- `sample/embedded/`: embedded SDK samples
+- `sample/backend/`: model, web, and Docker backend samples
+- `docs/embedded/`: embedded recognition documentation
+- `docs/backend/`: streaming, API, and operations documentation
 
 ## Key Configuration
 
-Main backend settings live in `sign_bridge/src/main/resources/application.yml`.
+Main backend settings live in `sign/backend/bridge/src/main/resources/application.yml`.
 
 - `sign.gpu.provider`
 - `sign.gpu.base-url`
@@ -121,7 +120,7 @@ Main backend settings live in `sign_bridge/src/main/resources/application.yml`.
 1. Start the mock GPU server
 
 ```bash
-cd sign_gemma_mock
+cd sample/backend/model_server
 python3 -m pip install -r requirements.txt
 python3 main.py
 ```
@@ -129,20 +128,20 @@ python3 main.py
 2. Start the Spring bridge
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun
 ```
 
 3. Validate the Flutter package
 
 ```bash
-dart analyze slr_input_kit
+dart analyze sign/embedded
 ```
 
 4. Run the platform sample gallery
 
 ```bash
-cd slr_input_kit/example
+cd sample/embedded/flutter_app
 flutter run
 ```
 
@@ -152,19 +151,19 @@ The sample app provides Android, iOS, iPad, Web, Windows, macOS/OSX, and Linux p
 
 | Platform | Sample profile | Run command |
 | --- | --- | --- |
-| Android | `slr_input_kit/example/lib/samples/android_sample.dart` | `flutter run -d android` |
-| iOS | `slr_input_kit/example/lib/samples/ios_sample.dart` | `flutter run -d ios` |
-| iPad | `slr_input_kit/example/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
-| Web | `slr_input_kit/example/lib/samples/web_sample.dart` | `flutter run -d chrome` |
-| Windows | `slr_input_kit/example/lib/samples/windows_sample.dart` | `flutter run -d windows` |
-| macOS/OSX | `slr_input_kit/example/lib/samples/macos_sample.dart` | `flutter run -d macos` |
-| Linux | `slr_input_kit/example/lib/samples/linux_sample.dart` | `flutter run -d linux` |
+| Android | `sample/embedded/flutter_app/lib/samples/android_sample.dart` | `flutter run -d android` |
+| iOS | `sample/embedded/flutter_app/lib/samples/ios_sample.dart` | `flutter run -d ios` |
+| iPad | `sample/embedded/flutter_app/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
+| Web | `sample/embedded/flutter_app/lib/samples/web_sample.dart` | `flutter run -d chrome` |
+| Windows | `sample/embedded/flutter_app/lib/samples/windows_sample.dart` | `flutter run -d windows` |
+| macOS/OSX | `sample/embedded/flutter_app/lib/samples/macos_sample.dart` | `flutter run -d macos` |
+| Linux | `sample/embedded/flutter_app/lib/samples/linux_sample.dart` | `flutter run -d linux` |
 
 ## Language and Sign Model Routing
 
 The Flutter client appends `locale`, `sign_language`, `model_profile`, and `protocol_version` to the WebSocket URL based on the current platform locale. Active keyboard layout APIs differ by platform, so host apps that can read the actual keyboard/input language should pass an explicit `SignLanguageContext`.
 
-English locales are normalized by the backend to `asl` and the `sign-gemma` model profile. The backend SPI stays language-independent by passing a standard `InferenceContext`, and model backends receive the JSON envelope documented in [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md).
+English locales are normalized by the backend to `asl` and the `sign-gemma` model profile. The backend SPI stays language-independent by passing a standard `InferenceContext`, and model backends receive the JSON envelope documented in [`MODEL_PROTOCOL.md`](./docs/backend/MODEL_PROTOCOL.md).
 
 Spring Boot exposes supported locale/sign-language/model routes at `GET /api/v2/model-profiles`. The Flutter sample's `Model profile` selector reads that endpoint and applies the selected profile to WebSocket, T2S, and STS requests, with bundled demo profiles as an offline fallback.
 
@@ -173,9 +172,9 @@ or combines registered values that do not belong to the same route, SignBridge
 rejects it as an unsupported profile. REST synthesis APIs return HTTP 400, and
 WebSocket clients receive an `unsupported-profile` event before close.
 
-The API/SPI boundary is documented in [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md). New language model onboarding and the Sign Gemma-compatible model spec are documented in [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md).
+The API/SPI boundary is documented in [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md). New language model onboarding and the Sign Gemma-compatible model spec are documented in [`LANGUAGE_MODEL_GUIDE.md`](./docs/backend/LANGUAGE_MODEL_GUIDE.md).
 
-Public SignGemma findings and landmark support notes are documented in [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md).
+Public SignGemma findings and landmark support notes are documented in [`SIGN_GEMMA_RESEARCH.md`](./docs/embedded/SIGN_GEMMA_RESEARCH.md).
 
 ## Local Broker Environments
 
@@ -184,13 +183,13 @@ Public SignGemma findings and landmark support notes are documented in [`SIGN_GE
 Start Kafka:
 
 ```bash
-docker compose -f docker-compose.kafka.yml up -d
+docker compose -f sample/backend/docker-compose.kafka.yml up -d
 ```
 
 Run the bridge with the Kafka profile:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=kafka'
 ```
 
@@ -205,13 +204,13 @@ This profile enables:
 Start RabbitMQ:
 
 ```bash
-docker compose -f docker-compose.rabbitmq.yml up -d
+docker compose -f sample/backend/docker-compose.rabbitmq.yml up -d
 ```
 
 Run the bridge with the RabbitMQ profile:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
 ```
 
@@ -224,8 +223,8 @@ This profile enables:
 ### Shutdown
 
 ```bash
-docker compose -f docker-compose.kafka.yml down
-docker compose -f docker-compose.rabbitmq.yml down
+docker compose -f sample/backend/docker-compose.kafka.yml down
+docker compose -f sample/backend/docker-compose.rabbitmq.yml down
 ```
 
 ## Integrated Local Stacks
@@ -233,9 +232,9 @@ docker compose -f docker-compose.rabbitmq.yml down
 Use the integrated Compose files when you want the broker, mock GPU, and Spring bridge together in one local stack:
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d --build
-docker compose -f docker-compose.stack.kafka.yml up -d --build
-docker compose -f docker-compose.stack.rabbitmq.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.http.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.kafka.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.rabbitmq.yml up -d --build
 ```
 
 The bridge containers in these stacks override broker host settings for Docker-internal networking, so the queue provider talks to `kafka:9092` or `rabbitmq:5672`, while the mock GPU remains available at `http://mock-gpu:8000`.
@@ -248,7 +247,7 @@ protobuf WebSocket probe:
 ./scripts/verify_docker_http_stack.sh
 ```
 
-The mock GPU image is built from [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile) and pins Python dependencies through [`requirements.txt`](./sign_gemma_mock/requirements.txt), including the protobuf runtime required by the generated schema. For non-Docker local runs, use [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh) so the mock server runtime stays isolated in `sign_gemma_mock/.venv`.
+The mock GPU image is built from [`sample/backend/model_server/Dockerfile`](./sample/backend/model_server/Dockerfile) and pins Python dependencies through [`requirements.txt`](./sample/backend/model_server/requirements.txt), including the protobuf runtime required by the generated schema. For non-Docker local runs, use [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh) so the mock server runtime stays isolated in `sample/backend/model_server/.venv`.
 
 The Flutter sample includes a `Bridge diagnostics` panel. It derives the HTTP
 base URL from the active WebSocket URL and surfaces `/internal/healthz`,
@@ -307,8 +306,8 @@ Set `KEEP_STACK=1` if you want the containers to stay up after the validation ru
 
 Broker-specific retry and dead-letter policy samples are available in:
 
-- `sign_bridge/src/main/resources/application-kafka-dlq.properties`
-- `sign_bridge/src/main/resources/application-rabbitmq-dlq.properties`
+- `sign/backend/bridge/src/main/resources/application-kafka-dlq.properties`
+- `sign/backend/bridge/src/main/resources/application-rabbitmq-dlq.properties`
 
 These sample files cover:
 
@@ -324,7 +323,7 @@ They are sample baselines, not production-final settings.
 Backend verification:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew test
 ```
 
@@ -360,7 +359,7 @@ To verify the Spring Boot bridge and mock model server without Docker, run:
 ./scripts/verify_spring_openapi_smoke.sh
 ```
 
-The smoke script automatically uses `sign_gemma_mock/.venv` when present and
+The smoke script automatically uses `sample/backend/model_server/.venv` when present and
 exits early with a dependency hint when the selected Python protobuf runtime is
 older than the generated mock schema.
 

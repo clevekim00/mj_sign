@@ -2,8 +2,13 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.stack.kafka.yml"
+COMPOSE_FILE="$ROOT_DIR/sample/backend/docker-compose.stack.kafka.yml"
 KEEP_STACK="${KEEP_STACK:-0}"
+PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/sample/backend/model_server/.venv/bin/python}"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+  PYTHON_BIN="python3"
+fi
 
 cleanup() {
   if [ "$KEEP_STACK" = "1" ]; then
@@ -38,7 +43,7 @@ curl -fsS http://127.0.0.1:8080/internal/readyz
 echo
 
 echo "Sending WebSocket protobuf probe through Kafka-backed queue path..."
-python3 "$ROOT_DIR/scripts/send_websocket_probe.py" --url ws://127.0.0.1:8080/ws/sign
+"$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" --url ws://127.0.0.1:8080/ws/sign
 
 echo "Metrics snapshot:"
 METRICS="$(curl -fsS http://127.0.0.1:8080/internal/metrics)"

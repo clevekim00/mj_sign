@@ -11,7 +11,7 @@ import time
 from urllib.parse import urlparse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "sign_gemma_mock"))
+sys.path.insert(0, os.path.join(ROOT, "sample", "backend", "model_server"))
 
 from schema import landmark_pb2  # type: ignore
 

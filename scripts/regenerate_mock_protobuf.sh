@@ -3,7 +3,7 @@ set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 PROTOC_BIN="${PROTOC_BIN:-protoc}"
-PROTO_FILE="$ROOT_DIR/schema/landmark.proto"
+PROTO_FILE="$ROOT_DIR/sign/common/schema/landmark.proto"
 
 if ! command -v "$PROTOC_BIN" >/dev/null 2>&1; then
   echo "protoc is required. Install Protocol Buffers compiler or set PROTOC_BIN." >&2
@@ -13,8 +13,8 @@ fi
 echo "Using $("$PROTOC_BIN" --version)"
 
 "$PROTOC_BIN" \
-  -I "$ROOT_DIR" \
-  --python_out="$ROOT_DIR/sign_gemma_mock" \
+  -I "$ROOT_DIR/sign/common" \
+  --python_out="$ROOT_DIR/sample/backend/model_server" \
   "$PROTO_FILE"
 
 echo "Python mock protobuf schema regenerated."

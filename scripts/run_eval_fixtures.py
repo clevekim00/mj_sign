@@ -10,7 +10,7 @@ import urllib.request
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "sign_gemma_mock"))
+sys.path.insert(0, os.path.join(ROOT, "sample", "backend", "model_server"))
 
 try:
     from schema import landmark_pb2  # type: ignore
@@ -37,7 +37,7 @@ def build_chunk(session_id: str, frame_count: int) -> bytes:
     if landmark_pb2 is None:
         raise RuntimeError(
             "Python protobuf schema could not be imported. "
-            "Run `python3 -m pip install -r sign_gemma_mock/requirements.txt` "
+            "Run `python3 -m pip install -r sample/backend/model_server/requirements.txt` "
             f"before using --model-url. Original error: {LANDMARK_IMPORT_ERROR}"
         )
     chunk = landmark_pb2.ClientStreamChunk()
@@ -130,7 +130,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--fixtures",
-        default=os.path.join(ROOT, "eval", "fixtures", "signbridge_eval_fixtures.json"),
+        default=os.path.join(
+            ROOT,
+            "sign",
+            "common",
+            "eval",
+            "fixtures",
+            "signbridge_eval_fixtures.json",
+        ),
     )
     parser.add_argument("--model-url", help="Optional model endpoint, e.g. http://127.0.0.1:8001/api/v2/recognize")
     parser.add_argument("--timeout-seconds", type=float, default=10)

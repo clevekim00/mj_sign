@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: sign-bridge
+  # Swagger/OpenAPI configuration
+  springdoc:
+    swagger-ui:
+      path: /swagger-ui.html
+    api-docs:
+      path: /v3/api-docs
+  main:
+    banner-mode: "off"
+  # Spring AI Configuration
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: gemma4:latest
+          temperature: 0.7
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ${sign.gpu.queue-consumer-group}
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+sign:
+  language:
+    default-locale: ko-KR
+    default-sign-language: ksl
+    default-model-profile: sign-gemma-ko
+    protocol-version: signbridge-model-v1
+    sign-language-by-locale-language:
+      ko: ksl
+      en: asl
+      ja: jsl
+      zh: csl
+      fr: lsf
+      de: dgs
+      es: lse
+    model-profile-by-sign-language:
+      ksl: sign-gemma-ko
+      asl: sign-gemma
+      jsl: sign-gemma-ja
+      csl: sign-gemma-zh
+      lsf: sign-gemma-fr
+      dgs: sign-gemma-de
+      lse: sign-gemma-es
+  gpu:
+    provider: http
+    base-url: http://localhost:8000
+    infer-path: /api/v2/recognize
+    health-path: /ready
+    grpc-target: dns:///localhost:50051
+    queue-transport: in-memory
+    queue-broker-mode: loopback
+    queue-topic: sign.inference.requests
+    queue-request-topic: sign.inference.requests
+    queue-result-topic: sign.inference.results
+    queue-consumer-group: sign-bridge
+    queue-exchange: sign.inference
+    queue-routing-key: sign.inference.request
+    queue-result-routing-key: sign.inference.result
+    queue-timeout-ms: 5000
+    timeout-ms: 2000
+    probe-timeout-ms: 1000
+  synthesis:
+    provider: mock
+    asr-provider: mock
+    base-url: http://localhost:8010
+    asr-base-url: http://localhost:8011
+    synthesize-path: /api/v2/sign/synthesize
+    asr-path: /api/v2/speech/transcribe
+    output-format: landmarks
+    protocol-version: signbridge-synthesis-v1
+    timeout-ms: 3000
+  websocket:
+    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*,tauri://localhost,http://tauri.localhost"
+  window:
+    min-frames: 8
+    max-buffered-frames: 24
+    idle-timeout-ms: 1200
+    flush-threads: 1
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+    queue-capacity: 16
