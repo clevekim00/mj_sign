@@ -9,7 +9,6 @@
 - Python mock GPU 서버: `sample/backend/model_server/`
 - 공용 protobuf 스키마: `sign/common/schema/`
 - 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./docs/embedded/PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./docs/embedded/PROJECT_PROMOTION_EN.md)
-- SNS 홍보 문안: [`SOCIAL_POSTS_KO.md`](./docs/backend/SOCIAL_POSTS_KO.md)
 - 프로젝트 아키텍처: [`PROJECT_ARCHITECTURE_KO.md`](./docs/backend/PROJECT_ARCHITECTURE_KO.md) / [`PROJECT_ARCHITECTURE.md`](./docs/backend/PROJECT_ARCHITECTURE.md)
 - SignGemma 앱 예제 가이드: [`SIGN_GEMMA_APP_DEMO_KO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md) / [`SIGN_GEMMA_APP_DEMO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO.md)
 - API / SPI Reference: [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md)

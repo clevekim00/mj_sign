@@ -2,8 +2,6 @@
 
 Korean version: [PROJECT_PROMOTION_KO.md](./PROJECT_PROMOTION_KO.md)
 
-Korean social launch copy: [SOCIAL_POSTS_KO.md](../backend/SOCIAL_POSTS_KO.md)
-
 ## Project Architecture
 
 The shared runtime architecture and SignGemma-compatible demo flow are documented in [PROJECT_ARCHITECTURE.md](../backend/PROJECT_ARCHITECTURE.md). The Spring Boot + cross-platform app demo guide is [SIGN_GEMMA_APP_DEMO.md](../backend/SIGN_GEMMA_APP_DEMO.md). Korean versions are available in [PROJECT_ARCHITECTURE_KO.md](../backend/PROJECT_ARCHITECTURE_KO.md) and [SIGN_GEMMA_APP_DEMO_KO.md](../backend/SIGN_GEMMA_APP_DEMO_KO.md).

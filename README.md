@@ -8,7 +8,6 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 - [한국어 상세 문서](./README_ko.md)
 - [프로젝트 홍보 문서 (KO)](./docs/embedded/PROJECT_PROMOTION_KO.md)
 - [Project Promotion (EN)](./docs/embedded/PROJECT_PROMOTION_EN.md)
-- [SNS 홍보 문안](./docs/backend/SOCIAL_POSTS_KO.md)
 - [프로젝트 아키텍처 (KO)](./docs/backend/PROJECT_ARCHITECTURE_KO.md)
 - [Project Architecture (EN)](./docs/backend/PROJECT_ARCHITECTURE.md)
 - [SignGemma 앱 예제 가이드 (KO)](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md)

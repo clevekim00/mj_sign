@@ -9,7 +9,6 @@ This project is a cloud-oriented V2 prototype for sign language recognition.
 - Python mock GPU server: `sample/backend/model_server/`
 - Shared protobuf schema: `sign/common/schema/`
 - Promotional overview: [`PROJECT_PROMOTION_EN.md`](./docs/embedded/PROJECT_PROMOTION_EN.md) / [`PROJECT_PROMOTION_KO.md`](./docs/embedded/PROJECT_PROMOTION_KO.md)
-- Korean social launch copy: [`SOCIAL_POSTS_KO.md`](./docs/backend/SOCIAL_POSTS_KO.md)
 - Project architecture: [`PROJECT_ARCHITECTURE.md`](./docs/backend/PROJECT_ARCHITECTURE.md) / [`PROJECT_ARCHITECTURE_KO.md`](./docs/backend/PROJECT_ARCHITECTURE_KO.md)
 - SignGemma app demo guide: [`SIGN_GEMMA_APP_DEMO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO.md) / [`SIGN_GEMMA_APP_DEMO_KO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md)
 - API / SPI reference: [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md)

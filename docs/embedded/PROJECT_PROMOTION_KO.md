@@ -2,8 +2,6 @@
 
 English version: [PROJECT_PROMOTION_EN.md](./PROJECT_PROMOTION_EN.md)
 
-SNS 홍보 문안: [SOCIAL_POSTS_KO.md](../backend/SOCIAL_POSTS_KO.md)
-
 ## Project Architecture / 프로젝트 아키텍처
 
 공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](../backend/PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](../backend/PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](../backend/SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](../backend/SIGN_GEMMA_APP_DEMO.md)를 참고하세요.

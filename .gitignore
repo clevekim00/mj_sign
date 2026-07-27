@@ -3,9 +3,54 @@
 *.pyc
 __pycache__/
 .venv/
+venv/
+**/.venv/
+**/venv/
 sample/backend/model_server/.venv/
 /sign/backend/bridge/.kotlin/sessions
 /sign/backend/bridge/bin/
 /sign/backend/bridge/build/
 /bin/
 /build/
+
+# Dependency and generated build directories
+**/node_modules/
+**/.dart_tool/
+**/.gradle/
+**/Pods/
+**/target/
+**/build/
+
+# Local AI model weights and model download caches
+models/
+**/models/
+checkpoints/
+**/checkpoints/
+weights/
+**/weights/
+*.gguf
+*.safetensors
+*.onnx
+*.tflite
+*.task
+*.ckpt
+*.pth
+*.pt
+*.h5
+*.keras
+*.weights
+*.weights.*
+adapter_model.*
+pytorch_model.*
+model-*.bin
+tokenizer.model
+
+# Local model-provider caches
+.cache/
+**/.cache/
+**/huggingface/
+**/kagglehub/
+**/keras/
+
+# Local architecture-analysis output
+graphify-out/
