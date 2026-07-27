@@ -2,11 +2,16 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.stack.http.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-sample/backend/docker-compose.stack.http.yml}"
 BRIDGE_BASE_URL="${BRIDGE_BASE_URL:-http://127.0.0.1:8080}"
 WS_URL="${WS_URL:-ws://127.0.0.1:8080/ws/sign}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-90}"
 KEEP_STACK="${KEEP_STACK:-0}"
+PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/sample/backend/model_server/.venv/bin/python}"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+  PYTHON_BIN="python3"
+fi
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker command is not available. Install Docker Desktop or Docker Engine, then rerun this script." >&2
@@ -56,14 +61,14 @@ curl -fsS \
   "$BRIDGE_BASE_URL/api/v2/sign/synthesize" >/dev/null
 
 echo "Checking WebSocket protobuf streaming"
-if python3 "$ROOT_DIR/scripts/send_websocket_probe.py" \
+if "$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" \
   --url "$WS_URL" \
   --session-id "docker-http-ws" \
   --expect-json-field "event_type=result" >/dev/null; then
   echo "Docker HTTP stack verification passed"
 else
   echo "WebSocket probe failed. If this is a host Python protobuf issue, run:" >&2
-  echo "  python3 -m pip install -r sign_gemma_mock/requirements.txt" >&2
+  echo "  python3 -m pip install -r sample/backend/model_server/requirements.txt" >&2
   docker compose -f "$COMPOSE_FILE" logs --tail=120 >&2
   exit 1
 fi

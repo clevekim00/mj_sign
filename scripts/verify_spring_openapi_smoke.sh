@@ -7,7 +7,7 @@ MOCK_PORT="${MOCK_PORT:-8000}"
 MOCK_BASE_URL="${MOCK_BASE_URL:-http://127.0.0.1:$MOCK_PORT}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-90}"
 SKIP_START="${SKIP_START:-0}"
-MOCK_VENV_DIR="${MOCK_VENV_DIR:-$ROOT_DIR/sign_gemma_mock/.venv}"
+MOCK_VENV_DIR="${MOCK_VENV_DIR:-$ROOT_DIR/sample/backend/model_server/.venv}"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
 MOCK_PID=""
@@ -70,7 +70,7 @@ mock_python() {
 check_mock_python_runtime() {
   python_bin="$(mock_python)"
   if (
-    cd "$ROOT_DIR/sign_gemma_mock"
+    cd "$ROOT_DIR/sample/backend/model_server"
     "$python_bin" -c "from schema import landmark_pb2" >/dev/null 2>&1
   ); then
     return
@@ -79,7 +79,7 @@ check_mock_python_runtime() {
   echo "Python protobuf runtime is not compatible with the generated mock schema." >&2
   echo "Create the project-local mock venv first:" >&2
   echo "  ./scripts/setup_mock_venv.sh" >&2
-  echo "Or set PYTHON_BIN to a Python that has sign_gemma_mock/requirements.txt installed." >&2
+  echo "Or set PYTHON_BIN to a Python that has sample/backend/model_server/requirements.txt installed." >&2
   echo "Or run the Docker stack verification instead:" >&2
   echo "  ./scripts/verify_docker_http_stack.sh" >&2
   exit 127
@@ -92,7 +92,7 @@ if [ "$SKIP_START" != "1" ]; then
     check_mock_python_runtime
     echo "Starting mock model server..."
     (
-      cd "$ROOT_DIR/sign_gemma_mock"
+      cd "$ROOT_DIR/sample/backend/model_server"
       PORT="$MOCK_PORT" "$(mock_python)" main.py
     ) >/tmp/mj_sign_mock_smoke.log 2>&1 &
     MOCK_PID="$!"
@@ -105,7 +105,7 @@ if [ "$SKIP_START" != "1" ]; then
   else
     echo "Starting Spring bridge..."
     (
-      cd "$ROOT_DIR/sign_bridge"
+      cd "$ROOT_DIR/sign/backend/bridge"
       ./gradlew bootRun --args="--sign.gpu.base-url=$MOCK_BASE_URL"
     ) >/tmp/mj_sign_bridge_smoke.log 2>&1 &
     BRIDGE_PID="$!"

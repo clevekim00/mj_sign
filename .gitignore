@@ -3,9 +3,9 @@
 *.pyc
 __pycache__/
 .venv/
-sign_gemma_mock/.venv/
-/sign_bridge/.kotlin/sessions
-/sign_bridge/bin/
-/sign_bridge/build/
+sample/backend/model_server/.venv/
+/sign/backend/bridge/.kotlin/sessions
+/sign/backend/bridge/bin/
+/sign/backend/bridge/build/
 /bin/
 /build/

@@ -2,8 +2,13 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.stack.http.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/sample/backend/docker-compose.stack.http.yml}"
 KEEP_STACK="${KEEP_STACK:-0}"
+PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/sample/backend/model_server/.venv/bin/python}"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+  PYTHON_BIN="python3"
+fi
 
 cleanup() {
   if [ "$KEEP_STACK" = "1" ]; then
@@ -44,7 +49,7 @@ echo "Checking mock GPU profile registry..."
 curl -fsS http://127.0.0.1:8000/health | grep -q '"model_profile":"sign-gemma"'
 
 echo "Sending English/ASL WebSocket protobuf probe through HTTP provider..."
-python3 "$ROOT_DIR/scripts/send_websocket_probe.py" \
+"$PYTHON_BIN" "$ROOT_DIR/scripts/send_websocket_probe.py" \
   --url 'ws://127.0.0.1:8080/ws/sign?locale=en-US&sign_language=asl&model_profile=sign-gemma&protocol_version=signbridge-model-v1' \
   --session-id "asl-profile-probe" \
   --expect-json-field locale=en-US \

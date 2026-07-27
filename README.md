@@ -6,26 +6,26 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 
 - [English README](./README_en.md)
 - [한국어 상세 문서](./README_ko.md)
-- [프로젝트 홍보 문서 (KO)](./PROJECT_PROMOTION_KO.md)
-- [Project Promotion (EN)](./PROJECT_PROMOTION_EN.md)
-- [SNS 홍보 문안](./SOCIAL_POSTS_KO.md)
-- [프로젝트 아키텍처 (KO)](./PROJECT_ARCHITECTURE_KO.md)
-- [Project Architecture (EN)](./PROJECT_ARCHITECTURE.md)
-- [SignGemma 앱 예제 가이드 (KO)](./SIGN_GEMMA_APP_DEMO_KO.md)
-- [SignGemma App Demo Guide (EN)](./SIGN_GEMMA_APP_DEMO.md)
-- [API / SPI Reference](./API_SPI_REFERENCE.md)
-- [BE-Model 표준 프로토콜](./MODEL_PROTOCOL.md)
-- [T2S / STS Synthesis Design (KO)](./SIGN_SYNTHESIS_DESIGN_KO.md)
-- [T2S / STS Synthesis Design (EN)](./SIGN_SYNTHESIS_DESIGN.md)
-- [언어별 모델 추가 가이드](./LANGUAGE_MODEL_GUIDE.md)
-- [SignGemma 조사 노트 (KO)](./SIGN_GEMMA_RESEARCH_KO.md)
-- [SignGemma Research Notes (EN)](./SIGN_GEMMA_RESEARCH.md)
-- [LLM Integration Prompt](./PROMPT_LLM_INTEGRATION.md)
-- [개선 계획 및 리뷰](./REVIEW_AND_ENHANCEMENT_PLAN.md)
+- [프로젝트 홍보 문서 (KO)](./docs/embedded/PROJECT_PROMOTION_KO.md)
+- [Project Promotion (EN)](./docs/embedded/PROJECT_PROMOTION_EN.md)
+- [SNS 홍보 문안](./docs/backend/SOCIAL_POSTS_KO.md)
+- [프로젝트 아키텍처 (KO)](./docs/backend/PROJECT_ARCHITECTURE_KO.md)
+- [Project Architecture (EN)](./docs/backend/PROJECT_ARCHITECTURE.md)
+- [SignGemma 앱 예제 가이드 (KO)](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md)
+- [SignGemma App Demo Guide (EN)](./docs/backend/SIGN_GEMMA_APP_DEMO.md)
+- [API / SPI Reference](./docs/backend/API_SPI_REFERENCE.md)
+- [BE-Model 표준 프로토콜](./docs/backend/MODEL_PROTOCOL.md)
+- [T2S / STS Synthesis Design (KO)](./docs/backend/SIGN_SYNTHESIS_DESIGN_KO.md)
+- [T2S / STS Synthesis Design (EN)](./docs/backend/SIGN_SYNTHESIS_DESIGN.md)
+- [언어별 모델 추가 가이드](./docs/backend/LANGUAGE_MODEL_GUIDE.md)
+- [SignGemma 조사 노트 (KO)](./docs/embedded/SIGN_GEMMA_RESEARCH_KO.md)
+- [SignGemma Research Notes (EN)](./docs/embedded/SIGN_GEMMA_RESEARCH.md)
+- [LLM Integration Prompt](./docs/backend/PROMPT_LLM_INTEGRATION.md)
+- [개선 계획 및 리뷰](./docs/backend/REVIEW_AND_ENHANCEMENT_PLAN.md)
 
 ## Project Architecture / 프로젝트 아키텍처
 
-공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](docs/backend/PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](docs/backend/PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](docs/backend/SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](docs/backend/SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
 
 ## 왜 SignBridge인가
 
@@ -60,11 +60,20 @@ graph TD
 
 ## 저장소 구성
 
-- `slr_input_kit/`: SignInputKit SDK의 현재 Flutter package, SignBridge client, protobuf model, 플랫폼별 샘플 앱
-- `sign_bridge/`: Spring Boot WebSocket bridge, provider routing, async buffer, queue worker, health/readiness/metrics, LLM translation API
-- `sign_gemma_mock/`: FastAPI 기반 mock GPU serving backend
-- `schema/`: Flutter, Java, Python이 공유하는 protobuf schema
-- `scripts/`: Kafka/RabbitMQ 통합 스택 검증 스크립트
+```text
+sign/
+├── embedded/       # 앱에 내장되는 SignInputKit Flutter SDK
+├── backend/        # 원격 인식용 Spring SignBridge
+└── common/         # protobuf 원본과 공통 평가 fixture
+sample/
+├── embedded/       # Flutter SDK 사용 예제
+└── backend/        # 모델 서버·웹 앱·Docker 통합 예제
+docs/
+├── embedded/       # 내장형 인식 및 접근성 문서
+└── backend/        # 스트리밍·API·운영 문서
+```
+
+각 폴더의 README에 책임, 의존 방향과 실행 방법을 정리했습니다.
 
 ## 구현된 주요 기능
 
@@ -87,7 +96,7 @@ graph TD
 Mock GPU 서버:
 
 ```bash
-cd sign_gemma_mock
+cd sample/backend/model_server
 python3 -m pip install -r requirements.txt
 python3 main.py
 ```
@@ -95,14 +104,14 @@ python3 main.py
 Spring bridge:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun
 ```
 
 Flutter 샘플 앱:
 
 ```bash
-cd slr_input_kit/example
+cd sample/embedded/flutter_app
 flutter run
 ```
 
@@ -110,7 +119,7 @@ flutter run
 
 ## 플랫폼별 샘플
 
-플랫폼 샘플은 [slr_input_kit/example/lib/samples](./slr_input_kit/example/lib/samples)에 분리되어 있고, [slr_input_kit/example/lib/main.dart](./slr_input_kit/example/lib/main.dart)에서 갤러리 형태로 실행됩니다.
+플랫폼 샘플은 [sample/embedded/flutter_app/lib/samples](./sample/embedded/flutter_app/lib/samples)에 분리되어 있고, [sample/embedded/flutter_app/lib/main.dart](./sample/embedded/flutter_app/lib/main.dart)에서 갤러리 형태로 실행됩니다.
 
 | Platform | Sample profile | Run command | 기본 bridge URL |
 | --- | --- | --- | --- |
@@ -128,19 +137,19 @@ flutter run
 
 Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼별 active keyboard layout은 Flutter에서 일관되게 노출되지 않으므로, 앱에서 키보드 언어를 알 수 있는 경우 `SignLanguageContext`로 명시 override할 수 있습니다.
 
-영어 locale은 BE에서 기본적으로 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [MODEL_PROTOCOL.md](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+영어 locale은 BE에서 기본적으로 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [MODEL_PROTOCOL.md](./docs/backend/MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
 
 Spring Boot는 `GET /api/v2/model-profiles`로 지원하는 locale/sign-language/model profile registry를 공개합니다. Flutter 샘플의 `Model profile` selector는 이 endpoint를 읽어 WebSocket, T2S, STS 요청에 같은 profile을 적용하며, bridge가 꺼져 있으면 bundled demo profile로 fallback합니다.
 
 명시적으로 요청한 `sign_language` 또는 `model_profile`이 registry에 없거나 서로 맞지 않으면 SignBridge는 unsupported profile로 거절합니다. REST synthesis API는 HTTP 400을 반환하고, WebSocket은 `unsupported-profile` event를 보낸 뒤 연결을 닫습니다.
 
-API/SPI 경계는 [API_SPI_REFERENCE.md](./API_SPI_REFERENCE.md)에 정리되어 있고, 새 언어 모델을 추가하는 절차와 Sign Gemma 호환 model spec은 [LANGUAGE_MODEL_GUIDE.md](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 따르면 됩니다.
+API/SPI 경계는 [API_SPI_REFERENCE.md](./docs/backend/API_SPI_REFERENCE.md)에 정리되어 있고, 새 언어 모델을 추가하는 절차와 Sign Gemma 호환 model spec은 [LANGUAGE_MODEL_GUIDE.md](./docs/backend/LANGUAGE_MODEL_GUIDE.md)를 기준으로 따르면 됩니다.
 
-SignGemma 공개 정보와 landmark 지원 범위는 [SIGN_GEMMA_RESEARCH_KO.md](./SIGN_GEMMA_RESEARCH_KO.md)와 [SIGN_GEMMA_RESEARCH.md](./SIGN_GEMMA_RESEARCH.md)에 따로 정리했습니다.
+SignGemma 공개 정보와 landmark 지원 범위는 [SIGN_GEMMA_RESEARCH_KO.md](./docs/embedded/SIGN_GEMMA_RESEARCH_KO.md)와 [SIGN_GEMMA_RESEARCH.md](./docs/embedded/SIGN_GEMMA_RESEARCH.md)에 따로 정리했습니다.
 
 ## Provider 설정
 
-주요 설정은 [sign_bridge/src/main/resources/application.yml](./sign_bridge/src/main/resources/application.yml)에 있습니다.
+주요 설정은 [sign/backend/bridge/src/main/resources/application.yml](./sign/backend/bridge/src/main/resources/application.yml)에 있습니다.
 
 - `sign.gpu.provider`
 - `sign.language.default-locale`
@@ -166,25 +175,25 @@ SignGemma 공개 정보와 landmark 지원 범위는 [SIGN_GEMMA_RESEARCH_KO.md]
 Kafka:
 
 ```bash
-docker compose -f docker-compose.kafka.yml up -d
-cd sign_bridge
+docker compose -f sample/backend/docker-compose.kafka.yml up -d
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=kafka'
 ```
 
 RabbitMQ:
 
 ```bash
-docker compose -f docker-compose.rabbitmq.yml up -d
-cd sign_bridge
+docker compose -f sample/backend/docker-compose.rabbitmq.yml up -d
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
 ```
 
 Mock GPU와 bridge까지 포함한 통합 스택:
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d --build
-docker compose -f docker-compose.stack.kafka.yml up -d --build
-docker compose -f docker-compose.stack.rabbitmq.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.http.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.kafka.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.rabbitmq.yml up -d --build
 ```
 
 HTTP provider 통합 스택은 아래 스크립트로 build, readiness, profile discovery,
@@ -194,8 +203,8 @@ T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
 ./scripts/verify_docker_http_stack.sh
 ```
 
-`sign_gemma_mock`은 [requirements.txt](./sign_gemma_mock/requirements.txt)와
-[Dockerfile](./sign_gemma_mock/Dockerfile)로 Python/protobuf runtime을 고정합니다.
+`sign_gemma_mock`은 [requirements.txt](./sample/backend/model_server/requirements.txt)와
+[Dockerfile](./sample/backend/model_server/Dockerfile)로 Python/protobuf runtime을 고정합니다.
 로컬 Python에 오래된 `protobuf`가 설치되어 있으면 mock 서버가 schema import 단계에서
 실패할 수 있으므로 requirements 또는 Docker 실행을 사용하세요.
 
@@ -249,14 +258,14 @@ English/ASL `sign-gemma` profile flow:
 백엔드 단위 테스트:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew test
 ```
 
 Flutter 패키지 분석:
 
 ```bash
-dart analyze slr_input_kit
+dart analyze sign/embedded
 ```
 
 CI는 GitHub Actions의 [ci.yml](./.github/workflows/ci.yml)에서 Spring Boot test,
@@ -282,7 +291,7 @@ Docker 없이 Spring Boot와 mock model server만 검증하려면 mock 전용 ve
 ./scripts/verify_spring_openapi_smoke.sh
 ```
 
-이 smoke script는 `sign_gemma_mock/.venv`가 있으면 자동으로 사용합니다.
+이 smoke script는 `sample/backend/model_server/.venv`가 있으면 자동으로 사용합니다.
 
 ## 운영 준비 체크포인트
 

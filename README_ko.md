@@ -4,23 +4,23 @@
 
 - 플랫폼/제품 브랜딩: LinguaSign 제품을 구동하는 SignBridge 플랫폼
 - SDK 브랜드: SignInputKit, 현재 package 이름은 `slr_input_kit` 유지
-- Flutter 클라이언트 플러그인: `slr_input_kit/`
-- Spring Boot 브릿지: `sign_bridge/`
-- Python mock GPU 서버: `sign_gemma_mock/`
-- 공용 protobuf 스키마: `schema/`
-- 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./PROJECT_PROMOTION_EN.md)
-- SNS 홍보 문안: [`SOCIAL_POSTS_KO.md`](./SOCIAL_POSTS_KO.md)
-- 프로젝트 아키텍처: [`PROJECT_ARCHITECTURE_KO.md`](./PROJECT_ARCHITECTURE_KO.md) / [`PROJECT_ARCHITECTURE.md`](./PROJECT_ARCHITECTURE.md)
-- SignGemma 앱 예제 가이드: [`SIGN_GEMMA_APP_DEMO_KO.md`](./SIGN_GEMMA_APP_DEMO_KO.md) / [`SIGN_GEMMA_APP_DEMO.md`](./SIGN_GEMMA_APP_DEMO.md)
-- API / SPI Reference: [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)
-- BE-Model 표준 프로토콜: [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)
-- T2S / STS 설계 문서: [`SIGN_SYNTHESIS_DESIGN_KO.md`](./SIGN_SYNTHESIS_DESIGN_KO.md) / [`SIGN_SYNTHESIS_DESIGN.md`](./SIGN_SYNTHESIS_DESIGN.md)
-- 언어별 모델 추가 가이드: [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)
-- SignGemma 조사 노트: [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md) / [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)
+- Flutter 클라이언트 플러그인: `sign/embedded/`
+- Spring Boot 브릿지: `sign/backend/bridge/`
+- Python mock GPU 서버: `sample/backend/model_server/`
+- 공용 protobuf 스키마: `sign/common/schema/`
+- 프로젝트 홍보 문서: [`PROJECT_PROMOTION_KO.md`](./docs/embedded/PROJECT_PROMOTION_KO.md) / [`PROJECT_PROMOTION_EN.md`](./docs/embedded/PROJECT_PROMOTION_EN.md)
+- SNS 홍보 문안: [`SOCIAL_POSTS_KO.md`](./docs/backend/SOCIAL_POSTS_KO.md)
+- 프로젝트 아키텍처: [`PROJECT_ARCHITECTURE_KO.md`](./docs/backend/PROJECT_ARCHITECTURE_KO.md) / [`PROJECT_ARCHITECTURE.md`](./docs/backend/PROJECT_ARCHITECTURE.md)
+- SignGemma 앱 예제 가이드: [`SIGN_GEMMA_APP_DEMO_KO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO_KO.md) / [`SIGN_GEMMA_APP_DEMO.md`](./docs/backend/SIGN_GEMMA_APP_DEMO.md)
+- API / SPI Reference: [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md)
+- BE-Model 표준 프로토콜: [`MODEL_PROTOCOL.md`](./docs/backend/MODEL_PROTOCOL.md)
+- T2S / STS 설계 문서: [`SIGN_SYNTHESIS_DESIGN_KO.md`](./docs/backend/SIGN_SYNTHESIS_DESIGN_KO.md) / [`SIGN_SYNTHESIS_DESIGN.md`](./docs/backend/SIGN_SYNTHESIS_DESIGN.md)
+- 언어별 모델 추가 가이드: [`LANGUAGE_MODEL_GUIDE.md`](./docs/backend/LANGUAGE_MODEL_GUIDE.md)
+- SignGemma 조사 노트: [`SIGN_GEMMA_RESEARCH_KO.md`](./docs/embedded/SIGN_GEMMA_RESEARCH_KO.md) / [`SIGN_GEMMA_RESEARCH.md`](./docs/embedded/SIGN_GEMMA_RESEARCH.md)
 
 ## Project Architecture / 프로젝트 아키텍처
 
-공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
+공통 런타임 구조와 SignGemma-compatible 예제 흐름은 [PROJECT_ARCHITECTURE_KO.md](docs/backend/PROJECT_ARCHITECTURE_KO.md)에 정리되어 있습니다. 영문판은 [PROJECT_ARCHITECTURE.md](docs/backend/PROJECT_ARCHITECTURE.md)입니다. Spring Boot + cross-platform app 실행 가이드는 [SIGN_GEMMA_APP_DEMO_KO.md](docs/backend/SIGN_GEMMA_APP_DEMO_KO.md), 영문판은 [SIGN_GEMMA_APP_DEMO.md](docs/backend/SIGN_GEMMA_APP_DEMO.md)를 참고하세요.
 
 ## 현재 아키텍처
 
@@ -86,18 +86,17 @@ graph TD
 
 ## 디렉터리 구조
 
-- `slr_input_kit/`
-  SignInputKit SDK 공개 API, 데모 위젯, protobuf 모델, SignBridge 클라이언트, 플랫폼별 샘플 갤러리
-- `sign_bridge/`
-  Spring Boot WebSocket 브릿지 (Kotlin/build.gradle.kts), 버퍼링 로직, 비동기 디스패치, 서버 라우팅, 큐 워커 계약 및 **Gemma 2 LLM 번역 레이어**.
-- `sign_gemma_mock/`
-  현재 HTTP 추론 계약을 따르는 FastAPI mock 서빙 백엔드
-- `schema/`
-  Flutter, Java, Python이 공유하는 protobuf 스키마
+- `sign/embedded/`: 앱에 포함되는 SignInputKit SDK
+- `sign/backend/`: 원격 수어 인식 백엔드
+- `sign/common/`: 두 기능의 공통 protobuf 및 평가 계약
+- `sample/embedded/`: 내장형 SDK 샘플
+- `sample/backend/`: 백엔드 모델·웹·Docker 샘플
+- `docs/embedded/`: 내장형 기능 문서
+- `docs/backend/`: 백엔드 기능 문서
 
 ## 주요 설정
 
-주요 백엔드 설정은 `sign_bridge/src/main/resources/application.yml` 에 있습니다.
+주요 백엔드 설정은 `sign/backend/bridge/src/main/resources/application.yml` 에 있습니다.
 
 - `sign.gpu.provider`
 - `sign.gpu.base-url`
@@ -121,7 +120,7 @@ graph TD
 1. mock GPU 서버 실행
 
 ```bash
-cd sign_gemma_mock
+cd sample/backend/model_server
 python3 -m pip install -r requirements.txt
 python3 main.py
 ```
@@ -129,20 +128,20 @@ python3 main.py
 2. Spring 브릿지 실행
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun
 ```
 
 3. Flutter 패키지 검증
 
 ```bash
-dart analyze slr_input_kit
+dart analyze sign/embedded
 ```
 
 4. 플랫폼 샘플 앱 실행
 
 ```bash
-cd slr_input_kit/example
+cd sample/embedded/flutter_app
 flutter run
 ```
 
@@ -152,27 +151,27 @@ flutter run
 
 | Platform | Sample profile | 실행 명령 |
 | --- | --- | --- |
-| Android | `slr_input_kit/example/lib/samples/android_sample.dart` | `flutter run -d android` |
-| iOS | `slr_input_kit/example/lib/samples/ios_sample.dart` | `flutter run -d ios` |
-| iPad | `slr_input_kit/example/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
-| Web | `slr_input_kit/example/lib/samples/web_sample.dart` | `flutter run -d chrome` |
-| Windows | `slr_input_kit/example/lib/samples/windows_sample.dart` | `flutter run -d windows` |
-| macOS/OSX | `slr_input_kit/example/lib/samples/macos_sample.dart` | `flutter run -d macos` |
-| Linux | `slr_input_kit/example/lib/samples/linux_sample.dart` | `flutter run -d linux` |
+| Android | `sample/embedded/flutter_app/lib/samples/android_sample.dart` | `flutter run -d android` |
+| iOS | `sample/embedded/flutter_app/lib/samples/ios_sample.dart` | `flutter run -d ios` |
+| iPad | `sample/embedded/flutter_app/lib/samples/ipad_sample.dart` | `flutter run -d <ipad-device-id>` |
+| Web | `sample/embedded/flutter_app/lib/samples/web_sample.dart` | `flutter run -d chrome` |
+| Windows | `sample/embedded/flutter_app/lib/samples/windows_sample.dart` | `flutter run -d windows` |
+| macOS/OSX | `sample/embedded/flutter_app/lib/samples/macos_sample.dart` | `flutter run -d macos` |
+| Linux | `sample/embedded/flutter_app/lib/samples/linux_sample.dart` | `flutter run -d linux` |
 
 ## 언어 및 수어 모델 라우팅
 
 Flutter client는 기본적으로 현재 platform locale을 기준으로 WebSocket URL에 `locale`, `sign_language`, `model_profile`, `protocol_version`을 붙입니다. 플랫폼마다 active keyboard layout을 읽는 API가 다르기 때문에, 실제 키보드 언어를 앱에서 알 수 있는 경우 `SignLanguageContext`로 명시 override하면 됩니다.
 
-영어 locale은 BE에서 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [`MODEL_PROTOCOL.md`](./MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
+영어 locale은 BE에서 `asl`과 `sign-gemma` model profile로 정규화됩니다. BE 내부 SPI는 언어와 무관하게 `InferenceContext`를 함께 받는 동일한 형태이며, model backend에는 [`MODEL_PROTOCOL.md`](./docs/backend/MODEL_PROTOCOL.md)에 정의된 표준 JSON envelope가 전달됩니다.
 
 Spring Boot는 `GET /api/v2/model-profiles`로 지원하는 locale/sign-language/model route를 공개합니다. Flutter 샘플의 `Model profile` selector는 이 endpoint를 읽어 WebSocket, T2S, STS 요청에 같은 profile을 적용하고, bridge가 꺼져 있으면 bundled demo profile로 fallback합니다.
 
 명시적으로 요청한 `sign_language` 또는 `model_profile`이 registry에 없거나 서로 맞지 않으면 SignBridge는 unsupported profile로 거절합니다. REST synthesis API는 HTTP 400을 반환하고, WebSocket은 `unsupported-profile` event를 보낸 뒤 연결을 닫습니다.
 
-API/SPI 경계는 [`API_SPI_REFERENCE.md`](./API_SPI_REFERENCE.md)에 정리되어 있고, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 [`LANGUAGE_MODEL_GUIDE.md`](./LANGUAGE_MODEL_GUIDE.md)를 기준으로 관리합니다.
+API/SPI 경계는 [`API_SPI_REFERENCE.md`](./docs/backend/API_SPI_REFERENCE.md)에 정리되어 있고, 신규 언어 모델 추가 절차와 Sign Gemma 호환 model spec은 [`LANGUAGE_MODEL_GUIDE.md`](./docs/backend/LANGUAGE_MODEL_GUIDE.md)를 기준으로 관리합니다.
 
-SignGemma 공개 정보와 landmark 지원 범위는 [`SIGN_GEMMA_RESEARCH_KO.md`](./SIGN_GEMMA_RESEARCH_KO.md)와 [`SIGN_GEMMA_RESEARCH.md`](./SIGN_GEMMA_RESEARCH.md)에 별도로 정리했습니다.
+SignGemma 공개 정보와 landmark 지원 범위는 [`SIGN_GEMMA_RESEARCH_KO.md`](./docs/embedded/SIGN_GEMMA_RESEARCH_KO.md)와 [`SIGN_GEMMA_RESEARCH.md`](./docs/embedded/SIGN_GEMMA_RESEARCH.md)에 별도로 정리했습니다.
 
 ## 로컬 브로커 실행 환경
 
@@ -181,13 +180,13 @@ SignGemma 공개 정보와 landmark 지원 범위는 [`SIGN_GEMMA_RESEARCH_KO.md
 Kafka 실행:
 
 ```bash
-docker compose -f docker-compose.kafka.yml up -d
+docker compose -f sample/backend/docker-compose.kafka.yml up -d
 ```
 
 Kafka 프로필로 브릿지 실행:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=kafka'
 ```
 
@@ -202,13 +201,13 @@ cd sign_bridge
 RabbitMQ 실행:
 
 ```bash
-docker compose -f docker-compose.rabbitmq.yml up -d
+docker compose -f sample/backend/docker-compose.rabbitmq.yml up -d
 ```
 
 RabbitMQ 프로필로 브릿지 실행:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew bootRun --args='--spring.profiles.active=rabbitmq'
 ```
 
@@ -221,8 +220,8 @@ cd sign_bridge
 ### 종료
 
 ```bash
-docker compose -f docker-compose.kafka.yml down
-docker compose -f docker-compose.rabbitmq.yml down
+docker compose -f sample/backend/docker-compose.kafka.yml down
+docker compose -f sample/backend/docker-compose.rabbitmq.yml down
 ```
 
 ## 통합 로컬 스택
@@ -230,9 +229,9 @@ docker compose -f docker-compose.rabbitmq.yml down
 브로커, mock GPU, Spring 브릿지를 한 번에 올리려면 아래 compose 파일을 사용하면 됩니다.
 
 ```bash
-docker compose -f docker-compose.stack.http.yml up -d --build
-docker compose -f docker-compose.stack.kafka.yml up -d --build
-docker compose -f docker-compose.stack.rabbitmq.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.http.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.kafka.yml up -d --build
+docker compose -f sample/backend/docker-compose.stack.rabbitmq.yml up -d --build
 ```
 
 통합 스택의 브릿지 컨테이너는 Docker 내부 네트워크 기준으로 Kafka는 `kafka:9092`, RabbitMQ는 `rabbitmq:5672` 를 바라보도록 오버라이드되어 있고, mock GPU는 `http://mock-gpu:8000` 으로 연결됩니다.
@@ -244,7 +243,7 @@ T2S, WebSocket protobuf streaming까지 한 번에 확인할 수 있습니다.
 ./scripts/verify_docker_http_stack.sh
 ```
 
-Mock GPU 이미지는 [`sign_gemma_mock/Dockerfile`](./sign_gemma_mock/Dockerfile)에서 빌드되며, 생성된 Python protobuf schema와 맞는 runtime은 [`requirements.txt`](./sign_gemma_mock/requirements.txt)로 고정합니다. Docker 없이 로컬에서 실행할 때는 [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh)를 사용해 mock server runtime을 `sign_gemma_mock/.venv`에 격리합니다.
+Mock GPU 이미지는 [`sample/backend/model_server/Dockerfile`](./sample/backend/model_server/Dockerfile)에서 빌드되며, 생성된 Python protobuf schema와 맞는 runtime은 [`requirements.txt`](./sample/backend/model_server/requirements.txt)로 고정합니다. Docker 없이 로컬에서 실행할 때는 [`scripts/setup_mock_venv.sh`](./scripts/setup_mock_venv.sh)를 사용해 mock server runtime을 `sample/backend/model_server/.venv`에 격리합니다.
 
 Flutter 샘플 앱의 `Bridge diagnostics` 패널은 현재 WebSocket URL에서 계산한
 HTTP base 기준으로 `/internal/healthz`, `/internal/readyz`,
@@ -309,8 +308,8 @@ English/ASL `sign-gemma` profile 검증:
 
 브로커별 retry / dead-letter 정책 샘플은 아래 파일에 정리되어 있습니다.
 
-- `sign_bridge/src/main/resources/application-kafka-dlq.properties`
-- `sign_bridge/src/main/resources/application-rabbitmq-dlq.properties`
+- `sign/backend/bridge/src/main/resources/application-kafka-dlq.properties`
+- `sign/backend/bridge/src/main/resources/application-rabbitmq-dlq.properties`
 
 샘플에 포함된 내용:
 
@@ -326,7 +325,7 @@ English/ASL `sign-gemma` profile 검증:
 백엔드 검증:
 
 ```bash
-cd sign_bridge
+cd sign/backend/bridge
 ./gradlew test
 ```
 
@@ -360,7 +359,7 @@ Docker 없이 Spring Boot와 mock model server만 검증하려면 아래 smoke s
 ./scripts/verify_spring_openapi_smoke.sh
 ```
 
-이 smoke script는 `sign_gemma_mock/.venv`가 있으면 자동으로 사용하고, 선택된
+이 smoke script는 `sample/backend/model_server/.venv`가 있으면 자동으로 사용하고, 선택된
 Python protobuf runtime이 생성된 mock schema보다 낮으면 즉시 중단하며 의존성
 준비 방법을 안내합니다.
 
