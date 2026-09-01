@@ -15,12 +15,22 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
+  analysis-index:
+    name: Folder analysis indexes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify generated folder indexes
+        run: python3 scripts/project_analysis_harness.py check
+
   spring:
     name: Spring Boot
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: sign_bridge
+        working-directory: sign/backend/bridge
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: slr_input_kit
+        working-directory: sign/embedded
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,15 +74,15 @@ jobs:
         run: flutter analyze
 
       - name: Install example dependencies
-        working-directory: slr_input_kit/example
+        working-directory: sample/embedded/flutter_app
         run: flutter pub get
 
       - name: Analyze example
-        working-directory: slr_input_kit/example
+        working-directory: sample/embedded/flutter_app
         run: flutter analyze
 
       - name: Test example
-        working-directory: slr_input_kit/example
+        working-directory: sample/embedded/flutter_app
         run: flutter test
 
   python-contracts:
@@ -87,14 +97,18 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: sign_gemma_mock/requirements.txt
+          cache-dependency-path: sample/backend/model_server/requirements.txt
 
       - name: Install mock dependencies
-        run: python -m pip install -r sign_gemma_mock/requirements.txt
+        run: python -m pip install -r sample/backend/model_server/requirements.txt
 
       - name: Import mock app
-        working-directory: sign_gemma_mock
+        working-directory: sample/backend/model_server
         run: python -c "import main; print(main.health_check()['status'])"
+
+      - name: Run model server contract tests
+        working-directory: sample/backend/model_server
+        run: python -m unittest discover -s tests -v
 
       - name: Run eval fixtures
         run: python scripts/run_eval_fixtures.py --json

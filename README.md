@@ -74,6 +74,27 @@ docs/
 
 각 폴더의 README에 책임, 의존 방향과 실행 방법을 정리했습니다.
 
+## 빠른 프로젝트 분석
+
+각 코드·문서 폴더의 `FILE_INDEX.md`에는 해당 폴더에 직접 들어 있는 파일의
+기능, 주요 선언과 내용 해시가 기록됩니다. 전체 저장소를 모두 읽기 전에 분석
+대상에 맞는 인덱스만 수집할 수 있습니다.
+
+```bash
+# 현재 변경 파일과 관련된 폴더 인덱스
+python3 scripts/project_analysis_harness.py context --changed
+
+# 특정 서버 흐름과 관련된 폴더 인덱스
+python3 scripts/project_analysis_harness.py context \
+  sign/backend/bridge sample/backend/model_server
+
+# 코드 변경 후 인덱스 갱신 및 검증
+python3 scripts/project_analysis_harness.py refresh
+python3 scripts/project_analysis_harness.py check
+```
+
+AI 분석 도구의 기본 진입 규칙은 루트 `AGENTS.md`에 정의되어 있습니다.
+
 ## 구현된 주요 기능
 
 - `/ws/sign` WebSocket binary protobuf landmark intake
