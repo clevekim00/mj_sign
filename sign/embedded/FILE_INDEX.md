@@ -19,21 +19,22 @@
 | `ffigen.yaml` | Run with `dart run ffigen --config ffigen.yaml`. | — | `3b033845ca87` |
 | `ios/Classes/slr_input_kit.c` | Relative import to be able to reuse the C sources. | — | `ddc244ffb497` |
 | `ios/slr_input_kit.podspec` | To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html. | — | `c4422d99a8b9` |
-| `lib/slr_input_kit.dart` | slr input kit 기능과 관련 타입을 구현한다. | — | `2b557e7ef306` |
+| `lib/slr_input_kit.dart` | slr input kit 기능과 관련 타입을 구현한다. | — | `aeb5681aed4c` |
 | `lib/slr_input_kit_bindings_generated.dart` | ignore_for_file: always_specify_types | `SlrInputKitBindings` | `1c8693802b24` |
 | `lib/slr_input_kit_web.dart` | slr input kit web 기능과 관련 타입을 구현한다. | `SlrInputKitWeb` | `e6519947fac1` |
-| `lib/src/generated/schema/landmark.pb.dart` | This is a generated file - do not edit. | `Point3D`, `LandmarkFrame`, `ClientStreamChunk`, `TranslationResult`, `$core` | `2883939d18ec` |
+| `lib/src/generated/schema/landmark.pb.dart` | This is a generated file - do not edit. | `Point3D`, `LandmarkFrame`, `ClientStreamChunk`, `TranslationResult`, `$core` | `f2995afb3d59` |
 | `lib/src/generated/schema/landmark.pbenum.dart` | This is a generated file - do not edit. | — | `a198b78bc2f0` |
-| `lib/src/generated/schema/landmark.pbjson.dart` | This is a generated file - do not edit. | `Point3D$json`, `LandmarkFrame$json`, `ClientStreamChunk$json`, `TranslationResult$json` | `3f9b737ae84e` |
+| `lib/src/generated/schema/landmark.pbjson.dart` | This is a generated file - do not edit. | `Point3D$json`, `LandmarkFrame$json`, `ClientStreamChunk$json`, `TranslationResult$json` | `97992f0672f0` |
 | `lib/src/landmark_frame_source.dart` | typedef LandmarkFrameBatchExtractor = | `class`, `CameraLandmarkFrameSource`, `StreamLandmarkFrameSource` | `169b8f49928d` |
 | `lib/src/mediapipe_landmark_frame_source.dart` | typedef MediaPipeLandmarkExtractor = | `MediaPipeLandmarkExtractionConfig`, `MediaPipeLandmarkExtraction`, `MediaPipeLandmarkFrameSource` | `b0eea29d747f` |
 | `lib/src/sign_bridge_status_client.dart` | sign bridge status client 외부 서비스 호출을 담당한다. | `SignBridgeStatusSnapshot`, `SignBridgeStatusHttpClient`, `SignBridgeStatusException` | `db0e59a5e660` |
-| `lib/src/sign_gemma_client.dart` | typedef TranslationHandler = void Function(TranslationResult result); | `SignGemmaConnectionState`, `SignLanguageContext`, `SignGemmaBridgeEvent`, `SignGemmaClient` | `f478eda59ced` |
+| `lib/src/sign_gemma_client.dart` | typedef TranslationHandler = void Function(TranslationResult result); | `SignGemmaConnectionState`, `SignLanguageContext`, `SignGemmaBridgeEvent`, `SignGemmaClient` | `98304590d205` |
 | `lib/src/sign_model_profile_client.dart` | sign model profile client 외부 서비스 호출을 담당한다. | `SignModelProfile`, `SignModelProfileCatalog`, `SignModelProfileHttpClient`, `SignModelProfileException` | `02aa782310cf` |
 | `lib/src/sign_output_widget.dart` | sign output widget 기능과 관련 타입을 구현한다. | `SignOutputWidget`, `_SignOutputWidgetState`, `_PlaybackStatusPill`, `_PlaybackControls`, `_SynthesisLandmarkPainter` | `99fa1b43e589` |
+| `lib/src/sign_recognition_engine.dart` | Shared recognition lifecycle and local/backend runtime adapters. | `SignRecognitionMode`, `SignRecognitionEngineState`, `SignRecognitionEvent`, `class`, `EmbeddedRecognitionRequest`, `EmbeddedSignRecognitionEngine`, `BackendSignRecognitionEngine` | `5dc356695ae3` |
 | `lib/src/sign_synthesis_client.dart` | sign synthesis client 외부 서비스 호출을 담당한다. | `SignSynthesisHttpClient`, `SignSynthesisException` | `52d4c3208bf3` |
 | `lib/src/sign_synthesis_models.dart` | sign synthesis models 기능과 관련 타입을 구현한다. | `SignSynthesisResult` | `2a46a49c5a80` |
-| `lib/src/slr_input_widget.dart` | slr input widget 기능과 관련 타입을 구현한다. | `SlrInputWidget`, `_SlrInputWidgetState`, `SizedBox` | `3e520843f163` |
+| `lib/src/slr_input_widget.dart` | slr input widget 기능과 관련 타입을 구현한다. | `SlrInputWidget`, `_SlrInputWidgetState`, `SizedBox` | `6716280d8e81` |
 | `LICENSE` | TODO: Add your license here. | — | `422e0de8e327` |
 | `linux/CMakeLists.txt` | The Flutter tooling requires that developers have CMake 3.10 or later | — | `f9f01c644381` |
 | `macos/Classes/slr_input_kit.c` | Relative import to be able to reuse the C sources. | — | `ddc244ffb497` |
@@ -44,6 +45,7 @@
 | `src/CMakeLists.txt` | The Flutter tooling requires that developers have CMake 3.10 or later | — | `53f7e6dfde38` |
 | `src/slr_input_kit.c` | include "slr_input_kit.h"\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n// MediaPipe and TFLite stub implementation for the demo\n// In a re | — | `5ab850b193e2` |
 | `src/slr_input_kit.h` | include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n#if _WIN32\n#include <windows.h>\n#else\n#include <pthread.h>\n#include <unistd.h>\n#endif\n\n#if _WIN32\n#define FFI | — | `b74f2ee88bd9` |
+| `test/sign_recognition_engine_test.dart` | 해당 기능의 동작과 회귀 조건을 자동 검증한다. | — | `a7a8a7c1dd5a` |
 | `test_integration.dart` | ignore_for_file: avoid_print | — | `0bc3f0e1144b` |
 | `windows/.gitignore` | flutter/ | — | `e967a837f76c` |
 | `windows/CMakeLists.txt` | The Flutter tooling requires that developers have a version of Visual Studio | — | `40cbfe739b14` |

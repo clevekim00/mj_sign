@@ -185,10 +185,22 @@ class ClientStreamChunk extends $pb.GeneratedMessage {
   factory ClientStreamChunk({
     $core.String? sessionId,
     $core.Iterable<LandmarkFrame>? frames,
+    $fixnum.Int64? chunkSequence,
+    $core.String? chunkId,
+    $core.String? segmentId,
+    $core.bool? endOfSegment,
+    $fixnum.Int64? sentAtMs,
+    $core.String? schemaVersion,
   }) {
     final result = create();
     if (sessionId != null) result.sessionId = sessionId;
     if (frames != null) result.frames.addAll(frames);
+    if (chunkSequence != null) result.chunkSequence = chunkSequence;
+    if (chunkId != null) result.chunkId = chunkId;
+    if (segmentId != null) result.segmentId = segmentId;
+    if (endOfSegment != null) result.endOfSegment = endOfSegment;
+    if (sentAtMs != null) result.sentAtMs = sentAtMs;
+    if (schemaVersion != null) result.schemaVersion = schemaVersion;
     return result;
   }
 
@@ -208,6 +220,14 @@ class ClientStreamChunk extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'sessionId')
     ..pPM<LandmarkFrame>(2, _omitFieldNames ? '' : 'frames',
         subBuilder: LandmarkFrame.create)
+    ..a<$fixnum.Int64>(
+        3, _omitFieldNames ? '' : 'chunkSequence', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(4, _omitFieldNames ? '' : 'chunkId')
+    ..aOS(5, _omitFieldNames ? '' : 'segmentId')
+    ..aOB(6, _omitFieldNames ? '' : 'endOfSegment')
+    ..aInt64(7, _omitFieldNames ? '' : 'sentAtMs')
+    ..aOS(8, _omitFieldNames ? '' : 'schemaVersion')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -240,6 +260,60 @@ class ClientStreamChunk extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<LandmarkFrame> get frames => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get chunkSequence => $_getI64(2);
+  @$pb.TagNumber(3)
+  set chunkSequence($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasChunkSequence() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearChunkSequence() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get chunkId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set chunkId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasChunkId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearChunkId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get segmentId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set segmentId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSegmentId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSegmentId() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get endOfSegment => $_getBF(5);
+  @$pb.TagNumber(6)
+  set endOfSegment($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasEndOfSegment() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEndOfSegment() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get sentAtMs => $_getI64(6);
+  @$pb.TagNumber(7)
+  set sentAtMs($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSentAtMs() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSentAtMs() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get schemaVersion => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set schemaVersion($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasSchemaVersion() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSchemaVersion() => $_clearField(8);
 }
 
 class TranslationResult extends $pb.GeneratedMessage {

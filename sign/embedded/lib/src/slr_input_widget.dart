@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'generated/schema/landmark.pb.dart';
 import 'landmark_frame_source.dart';
 import 'sign_gemma_client.dart';
+import 'sign_recognition_engine.dart';
 
 class SlrInputWidget extends StatefulWidget {
   const SlrInputWidget({
@@ -15,6 +16,8 @@ class SlrInputWidget extends StatefulWidget {
     this.bridgeUrl = 'ws://127.0.0.1:8080/ws/sign',
     this.sessionId,
     this.languageContext,
+    this.recognitionEngine,
+    this.disposeRecognitionEngine = false,
     this.landmarkFrameStream,
     this.landmarkFrameSource,
     this.disposeLandmarkFrameSource = false,
@@ -31,6 +34,8 @@ class SlrInputWidget extends StatefulWidget {
   final String bridgeUrl;
   final String? sessionId;
   final SignLanguageContext? languageContext;
+  final SignRecognitionEngine? recognitionEngine;
+  final bool disposeRecognitionEngine;
   final Stream<List<LandmarkFrame>>? landmarkFrameStream;
   final LandmarkFrameSource? landmarkFrameSource;
   final bool disposeLandmarkFrameSource;
@@ -47,7 +52,8 @@ class SlrInputWidget extends StatefulWidget {
 }
 
 class _SlrInputWidgetState extends State<SlrInputWidget> {
-  late final SignGemmaClient _client;
+  SignGemmaClient? _client;
+  StreamSubscription<SignRecognitionEvent>? _recognitionSubscription;
   late final String _sessionId;
   Timer? _streamTimer;
   Timer? _reconnectTimer;
@@ -67,13 +73,19 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     super.initState();
     _sessionId = widget.sessionId ?? _createSessionId();
     _statusText = widget.placeholder;
-    _client =
-        SignGemmaClient(
-            url: widget.bridgeUrl,
-            languageContext: widget.languageContext,
-          )
-          ..onConnectionState = _handleConnectionState
-          ..onEvent = _handleBridgeEvent;
+    if (widget.recognitionEngine == null) {
+      _client =
+          SignGemmaClient(
+              url: widget.bridgeUrl,
+              languageContext: widget.languageContext,
+            )
+            ..onConnectionState = _handleConnectionState
+            ..onEvent = _handleBridgeEvent;
+    } else {
+      _recognitionSubscription = widget.recognitionEngine!.events.listen(
+        _handleRecognitionEvent,
+      );
+    }
     unawaited(_connect());
   }
 
@@ -84,7 +96,13 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     });
 
     try {
-      await _client.connect();
+      final engine = widget.recognitionEngine;
+      if (engine != null) {
+        await engine.start();
+        _handleConnectionState(SignGemmaConnectionState.connected, null);
+      } else {
+        await _client!.connect();
+      }
       if (!mounted) {
         return;
       }
@@ -117,12 +135,16 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     _streamTimer?.cancel();
     _reconnectTimer?.cancel();
     unawaited(_landmarkSubscription?.cancel() ?? Future<void>.value());
+    unawaited(_recognitionSubscription?.cancel() ?? Future<void>.value());
     if (widget.disposeLandmarkFrameSource) {
       unawaited(widget.landmarkFrameSource?.dispose() ?? Future<void>.value());
     } else {
       unawaited(widget.landmarkFrameSource?.stop() ?? Future<void>.value());
     }
-    unawaited(_client.disconnect());
+    unawaited(_client?.disconnect() ?? Future<void>.value());
+    if (widget.disposeRecognitionEngine) {
+      unawaited(widget.recognitionEngine?.stop() ?? Future<void>.value());
+    }
     super.dispose();
   }
 
@@ -158,6 +180,34 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
 
     setState(() {
       _statusText = event.statusText ?? widget.placeholder;
+    });
+  }
+
+  void _handleRecognitionEvent(SignRecognitionEvent event) {
+    if (!mounted) return;
+    final result = event.result;
+    if (result != null) {
+      setState(() {
+        _statusText = result.text.isEmpty ? widget.placeholder : result.text;
+      });
+      if (result.isFinal && result.text.isNotEmpty) {
+        widget.onSignRecognized(result.text);
+      }
+      return;
+    }
+    setState(() {
+      _statusText = event.message ?? widget.placeholder;
+      _connected =
+          event.state == SignRecognitionEngineState.ready ||
+          event.state == SignRecognitionEngineState.processing;
+      _connecting = event.state == SignRecognitionEngineState.starting;
+      _connectionDetail = switch (event.state) {
+        SignRecognitionEngineState.ready => '인식 엔진이 준비되었습니다.',
+        SignRecognitionEngineState.processing => '수어를 인식하고 있습니다.',
+        SignRecognitionEngineState.starting => '인식 엔진을 준비하고 있습니다.',
+        SignRecognitionEngineState.error => '인식 엔진 오류: ${event.message ?? ''}',
+        SignRecognitionEngineState.stopped => '인식 엔진이 종료되었습니다.',
+      };
     });
   }
 
@@ -211,10 +261,10 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
     unawaited(_landmarkSubscription?.cancel() ?? Future<void>.value());
     _landmarkSubscription = frames.listen(
       (frames) {
-        if (!_client.isConnected || frames.isEmpty) {
+        if (!_isRecognitionReady || frames.isEmpty) {
           return;
         }
-        _client.sendFrames(frames, _sessionId);
+        unawaited(_recognize(frames));
       },
       onError: (Object error) {
         if (!mounted) {
@@ -256,10 +306,10 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
   void _startMockStream() {
     _streamTimer?.cancel();
     _streamTimer = Timer.periodic(widget.frameInterval, (_) {
-      if (!_client.isConnected) {
+      if (!_isRecognitionReady) {
         return;
       }
-      _client.sendFrames(_buildMockFrames(), _sessionId);
+      unawaited(_recognize(_buildMockFrames()));
     });
     setState(() {
       _streamingMockFrames = true;
@@ -276,9 +326,40 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
       _reconnectAttempts = 0;
     });
     _manualRetrying = true;
-    await _client.disconnect();
+    await _client?.disconnect();
     _manualRetrying = false;
     await _connect();
+  }
+
+  bool get _isRecognitionReady =>
+      widget.recognitionEngine?.isReady ?? (_client?.isConnected ?? false);
+
+  Future<void> _endSegment() async {
+    try {
+      final engine = widget.recognitionEngine;
+      if (engine != null) {
+        await engine.endSegment(_sessionId);
+      } else {
+        _client!.endSegment(_sessionId);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _statusText = '문장 확정 실패: $error');
+    }
+  }
+
+  Future<void> _recognize(List<LandmarkFrame> frames) async {
+    final engine = widget.recognitionEngine;
+    try {
+      if (engine != null) {
+        await engine.recognize(sessionId: _sessionId, frames: frames);
+      } else {
+        _client!.sendFrames(frames, _sessionId);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusText = '인식 요청 실패: $error');
+      }
+    }
   }
 
   void _scheduleReconnectIfNeeded() {
@@ -330,6 +411,9 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
   }
 
   String get _streamDescription {
+    if (widget.recognitionEngine?.mode == SignRecognitionMode.embedded) {
+      return '입력 landmark를 기기 내 모델 delegate로 처리합니다.';
+    }
     if (_streamingSourceFrames) {
       return '실제 landmark source에서 받은 frame batch를 브리지로 전송 중입니다.';
     }
@@ -373,6 +457,14 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
           children: [
             Row(
               children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: _isRecognitionReady ? _endSegment : null,
+                    icon: const Icon(Icons.check),
+                    label: const Text('문장 확정'),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Icon(
                   _connecting
                       ? Icons.cloud_sync_outlined
@@ -384,7 +476,10 @@ class _SlrInputWidgetState extends State<SlrInputWidget> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'SignBridge Stream',
+                    widget.recognitionEngine?.mode ==
+                            SignRecognitionMode.embedded
+                        ? 'Embedded Sign Recognition'
+                        : 'SignBridge Stream',
                     style: theme.textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,

@@ -6,6 +6,8 @@ SignBridge는 LinguaSign 제품을 구동하는 크로스 플랫폼 수어 입�
 
 - [English README](./README_en.md)
 - [한국어 상세 문서](./README_ko.md)
+- [이중 실행 모드 개선 설계·주의점·검증 결과](./docs/DUAL_MODE_SIGN_RECOGNITION_DESIGN_KO.md)
+- [내장/서버 전환 샘플 실행](./sample/embedded/README.md)
 - [프로젝트 홍보 문서 (KO)](./docs/embedded/PROJECT_PROMOTION_KO.md)
 - [Project Promotion (EN)](./docs/embedded/PROJECT_PROMOTION_EN.md)
 - [프로젝트 아키텍처 (KO)](./docs/backend/PROJECT_ARCHITECTURE_KO.md)

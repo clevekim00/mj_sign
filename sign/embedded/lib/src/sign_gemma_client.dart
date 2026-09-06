@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
+import 'package:fixnum/fixnum.dart';
+
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'generated/schema/landmark.pb.dart';
@@ -153,6 +155,8 @@ class SignGemmaClient {
   final SignLanguageContext languageContext;
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
+  int _chunkSequence = 0;
+  String _segmentId = _newId('segment');
 
   TranslationHandler? onTranslation;
   BridgeEventHandler? onEvent;
@@ -167,8 +171,14 @@ class SignGemmaClient {
 
     onConnectionState?.call(SignGemmaConnectionState.connecting, null);
 
+    final baseUri = languageContext.applyTo(Uri.parse(url));
     final channel = WebSocketChannel.connect(
-      languageContext.applyTo(Uri.parse(url)),
+      baseUri.replace(
+        queryParameters: <String, String>{
+          ...baseUri.queryParameters,
+          'stream_protocol_version': 'signbridge-stream-v2',
+        },
+      ),
     );
     _subscription = channel.stream.listen(
       _handleMessage,
@@ -209,9 +219,31 @@ class SignGemmaClient {
 
     final chunk = ClientStreamChunk()
       ..sessionId = sessionId
-      ..frames.addAll(frames);
+      ..frames.addAll(frames)
+      ..chunkSequence = Int64(++_chunkSequence)
+      ..chunkId = _newId('chunk')
+      ..segmentId = _segmentId
+      ..sentAtMs = Int64(DateTime.now().millisecondsSinceEpoch)
+      ..schemaVersion = 'mj.sign.ClientStreamChunk/v2';
 
     channel.sink.add(chunk.writeToBuffer());
+  }
+
+  void endSegment(String sessionId) {
+    final channel = _channel;
+    if (channel == null) {
+      throw StateError('SignGemmaClient is not connected.');
+    }
+    final chunk = ClientStreamChunk()
+      ..sessionId = sessionId
+      ..chunkSequence = Int64(++_chunkSequence)
+      ..chunkId = _newId('chunk')
+      ..segmentId = _segmentId
+      ..endOfSegment = true
+      ..sentAtMs = Int64(DateTime.now().millisecondsSinceEpoch)
+      ..schemaVersion = 'mj.sign.ClientStreamChunk/v2';
+    channel.sink.add(chunk.writeToBuffer());
+    _segmentId = _newId('segment');
   }
 
   Future<void> disconnect() async {
@@ -219,6 +251,7 @@ class SignGemmaClient {
     await _channel?.sink.close();
     _subscription = null;
     _channel = null;
+    _chunkSequence = 0;
     onConnectionState?.call(SignGemmaConnectionState.disconnected, null);
   }
 
@@ -261,5 +294,10 @@ class SignGemmaClient {
     if (event.isResult) {
       onTranslation?.call(event.toTranslationResult());
     }
+  }
+
+  static String _newId(String prefix) {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    return '$prefix-$now-${now.hashCode.abs()}';
   }
 }

@@ -21,7 +21,14 @@ from recognition_engine import build_recognition_engine
 
 app = FastAPI(title="Sign-Gemma Inference Server")
 # Configuration
-USE_REAL_MODEL = os.getenv("USE_REAL_MODEL", "false").lower() == "true"
+def real_model_enabled(environment):
+    """Read the canonical real-model flag, with a legacy compatibility fallback."""
+    return environment.get(
+        "SIGN_USE_REAL_MODEL", environment.get("USE_REAL_MODEL", "false")
+    ).strip().lower() == "true"
+
+
+USE_REAL_MODEL = real_model_enabled(os.environ)
 recognition_engine = build_recognition_engine(USE_REAL_MODEL)
 PRELOAD_PROFILES = [
     profile.strip()

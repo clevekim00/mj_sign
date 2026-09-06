@@ -79,9 +79,11 @@
 | `flutter_app/ios/Runner/Info.plist` | <?xml version="1.0" encoding="UTF-8"?> | — | `a86661f1604f` |
 | `flutter_app/ios/Runner/Runner-Bridging-Header.h` | runner bridging header 구현 또는 지원 요소를 제공한다. | — | `1a8d11d01d1c` |
 | `flutter_app/ios/RunnerTests/RunnerTests.swift` | runner tests 동작과 회귀 조건을 자동 검증한다. | `RunnerTests` | `5e8f4908dace` |
+| `flutter_app/lib/dual_mode_main.dart` | Standalone entry point for the embedded/backend recognition sample. | — | `9f9c36ff53f1` |
 | `flutter_app/lib/main.dart` | main 기능과 관련 타입을 구현한다. | `SlrInputKitSampleApp`, `PlatformSampleGallery`, `_PlatformSampleGalleryState`, `_HeroCard`, `_PlatformSelector`, `_BridgeUrlCard`, `_ModelProfileCard`, `_BridgeDiagnosticsCard` | `fedd3f50b55c` |
 | `flutter_app/lib/samples/android_sample.dart` | android sample 기능과 관련 타입을 구현한다. | `androidSampleProfile` | `c07aa504966a` |
 | `flutter_app/lib/samples/demo_landmark_frame_source.dart` | demo landmark frame source 기능과 관련 타입을 구현한다. | `DemoLandmarkFrameSource` | `c8887cfc85fd` |
+| `flutter_app/lib/samples/dual_mode_recognition_sample.dart` | Demonstrates that the same input widget and landmark source can switch | `DualModeRecognitionSample`, `_DualModeRecognitionSampleState`, `SizedBox`, `Text` | `46c2068816eb` |
 | `flutter_app/lib/samples/ios_sample.dart` | ios sample 기능과 관련 타입을 구현한다. | `iosSampleProfile` | `8dfd5c2929e0` |
 | `flutter_app/lib/samples/ipad_sample.dart` | ipad sample 기능과 관련 타입을 구현한다. | `ipadSampleProfile` | `3ac1ffd6da3e` |
 | `flutter_app/lib/samples/linux_sample.dart` | linux sample 기능과 관련 타입을 구현한다. | `linuxSampleProfile` | `2d6b71172659` |
@@ -124,6 +126,7 @@
 | `flutter_app/pubspec.yaml` | name: slr_input_kit_example | — | `9db75c807d65` |
 | `flutter_app/README.md` | LinguaSign SignInputKit Samples | — | `6b84c7761e5e` |
 | `flutter_app/slr_input_kit_example.iml` | <?xml version="1.0" encoding="UTF-8"?> | — | `078556ebd66f` |
+| `flutter_app/test/dual_mode_sample_test.dart` | 해당 기능의 동작과 회귀 조건을 자동 검증한다. | `MaterialApp` | `9a1322195620` |
 | `flutter_app/test/mediapipe_landmark_frame_source_test.dart` | 해당 기능의 동작과 회귀 조건을 자동 검증한다. | `MediaPipeLandmarkExtractionConfig` | `b73c03010c33` |
 | `flutter_app/test/sign_bridge_status_client_test.dart` | 해당 기능의 동작과 회귀 조건을 자동 검증한다. | — | `93e35b484d78` |
 | `flutter_app/test/sign_model_profile_client_test.dart` | 해당 기능의 동작과 회귀 조건을 자동 검증한다. | — | `36479dcd9095` |
@@ -154,7 +157,7 @@
 | `flutter_app/windows/runner/utils.h` | ifndef RUNNER_UTILS_H_ | — | `95a7f7dddb83` |
 | `flutter_app/windows/runner/win32_window.cpp` | include "win32_window.h" | `WindowClassRegistrar`, `wchar_t`, `Point`, `Size`, `POINT` | `9065f31ccf74` |
 | `flutter_app/windows/runner/win32_window.h` | ifndef RUNNER_WIN32_WINDOW_H_ | `Win32Window` | `7dd03746b19d` |
-| `README.md` | Embedded samples | — | `3fa1af9f4dfc` |
+| `README.md` | Embedded samples | — | `0938292ca6ae` |
 
 ## 분석 규칙
 

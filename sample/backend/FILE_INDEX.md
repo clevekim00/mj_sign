@@ -15,7 +15,7 @@
 | `model_server/Dockerfile` | FROM python:3.11-slim | — | `f920dec570cb` |
 | `model_server/Dockerfile.real` | FROM python:3.11-slim | — | `cb11deaf5ebd` |
 | `model_server/logger_config.py` | Logging configuration | — | `abf92135cd1e` |
-| `model_server/main.py` | The generated protobuf module | `InferenceRequest`, `startup_event`, `health_check`, `readiness_check`, `recognize_sign` | `8dad150c0560` |
+| `model_server/main.py` | The generated protobuf module | `InferenceRequest`, `real_model_enabled`, `startup_event`, `health_check`, `readiness_check`, `recognize_sign` | `2db878a4f3be` |
 | `model_server/mock_gpu.log` | INFO:     Started server process [32830] | — | `48b428be99de` |
 | `model_server/profile_registry.py` | SUPPORTED_LANDMARKS = [ | `SignGemmaProfile`, `SignGemmaProfileRegistry`, `normalize_protocol_version`, `metadata`, `keyword_hint`, `prompt_for_keywords`, `__init__`, `get` | `4f9bc6925f8b` |
 | `model_server/README.md` | SignGemma-Compatible Mock Server | `recognize` | `28b57e5890c9` |
@@ -24,7 +24,7 @@
 | `model_server/requirements.txt` | 설계, 사용법 또는 운영 지식을 문서화한다. | — | `ddf6fb61572f` |
 | `model_server/schema/landmark_pb2.py` | -*- coding: utf-8 -*- | — | `33f95fe6786f` |
 | `model_server/sign_gemma_model.py` | Set Keras backend to JAX (as used in the notebook) | `SignGemmaEngine`, `SignGemmaEngineRegistry`, `__init__`, `load_model`, `generate`, `get_engine`, `load_profile`, `is_loaded` | `5612150e3f6b` |
-| `model_server/tests/test_api_contract.py` | MODEL_SERVER_ROOT = Path(__file__).resolve().parents[1] | `ApiContractTest`, `test_rejects_invalid_base64`, `test_rejects_envelope_and_protobuf_session_mismatch`, `test_mock_engine_returns_protocol_metadata` | `ef638402525a` |
+| `model_server/tests/test_api_contract.py` | MODEL_SERVER_ROOT = Path(__file__).resolve().parents[1] | `ApiContractTest`, `test_real_model_flag_precedence_and_legacy_fallback`, `test_rejects_invalid_base64`, `test_rejects_envelope_and_protobuf_session_mismatch`, `test_mock_engine_returns_protocol_metadata` | `659564347675` |
 | `README.md` | Backend samples | — | `57a290cef36d` |
 | `web/app.js` | LinguaSign Web Sample - Application Logic | `LandmarkVisualizer`, `SystemMetrics`, `TranslationFeed`, `container`, `time`, `scale`, `offsetX`, `offsetY` | `5254ac5f3ce2` |
 | `web/DETAILED_GUIDE.md` | SignBridge / LinguaSign: 상세 기술 명세 및 통합 가이드 (Detailed Technical Guide) | `socket`, `result` | `cca5e91a92dc` |

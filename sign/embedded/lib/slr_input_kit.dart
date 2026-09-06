@@ -1,4 +1,5 @@
 export 'src/sign_gemma_client.dart';
+export 'src/sign_recognition_engine.dart';
 export 'src/sign_bridge_status_client.dart';
 export 'src/sign_model_profile_client.dart';
 export 'src/sign_output_widget.dart';

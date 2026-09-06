@@ -14,6 +14,14 @@ from schema import landmark_pb2  # noqa: E402
 
 
 class ApiContractTest(unittest.TestCase):
+    def test_real_model_flag_precedence_and_legacy_fallback(self):
+        self.assertTrue(main.real_model_enabled({"SIGN_USE_REAL_MODEL": "true"}))
+        self.assertTrue(main.real_model_enabled({"USE_REAL_MODEL": "true"}))
+        self.assertFalse(main.real_model_enabled({
+            "SIGN_USE_REAL_MODEL": "false", "USE_REAL_MODEL": "true",
+        }))
+        self.assertFalse(main.real_model_enabled({}))
+
     def test_rejects_invalid_base64(self):
         request = main.InferenceRequest(
             session_id="session-1",

@@ -19,13 +19,14 @@ INDEX_DIRECTORIES = (
     "sign/common",
     "sample/embedded",
     "sample/backend",
+    "docs",
     "docs/embedded",
     "docs/backend",
     "scripts",
 )
 SKIP_DIRS = {
     ".git", ".gradle", ".kotlin", ".dart_tool", ".idea", ".venv", "__pycache__",
-    "build", "dist", "node_modules", "Pods", "graphify-out", "coverage",
+    "build", "bin", "dist", "node_modules", "Pods", "graphify-out", "coverage",
     "ephemeral", ".plugin_symlinks",
 }
 SKIP_FILES = {".DS_Store", INDEX_NAME}

@@ -8,13 +8,15 @@
 |---|---|---|---|
 | `.gitignore` | gitignore 구현 또는 지원 요소를 제공한다. | — | `002b090b7080` |
 | `AGENTS.md` | Project analysis entrypoint | — | `6bdd3833cf01` |
-| `README.md` | SignBridge | — | `2dab6afdfb2e` |
+| `blueprint-dual-mode-sign-recognition.md` | Dual Mode Sign Recognition Codex Automation Blueprint | — | `f2ed1f00aa84` |
+| `README.md` | SignBridge | — | `81783e32a43e` |
 | `README_en.md` | SignBridge | — | `304b4623e20a` |
 | `README_ko.md` | SignBridge | — | `eac3da66355c` |
 | `starter.zip` | starter 구현 또는 지원 요소를 제공한다. | — | `4734e6710bd5` |
 
 ## 하위 인덱스
 
+- [`docs/FILE_INDEX.md`](docs/FILE_INDEX.md)
 - [`docs/backend/FILE_INDEX.md`](docs/backend/FILE_INDEX.md)
 - [`docs/embedded/FILE_INDEX.md`](docs/embedded/FILE_INDEX.md)
 - [`sample/backend/FILE_INDEX.md`](sample/backend/FILE_INDEX.md)

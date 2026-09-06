@@ -90,13 +90,23 @@ const ClientStreamChunk$json = {
       '6': '.mj.sign.LandmarkFrame',
       '10': 'frames'
     },
+    {'1': 'chunk_sequence', '3': 3, '4': 1, '5': 4, '10': 'chunkSequence'},
+    {'1': 'chunk_id', '3': 4, '4': 1, '5': 9, '10': 'chunkId'},
+    {'1': 'segment_id', '3': 5, '4': 1, '5': 9, '10': 'segmentId'},
+    {'1': 'end_of_segment', '3': 6, '4': 1, '5': 8, '10': 'endOfSegment'},
+    {'1': 'sent_at_ms', '3': 7, '4': 1, '5': 3, '10': 'sentAtMs'},
+    {'1': 'schema_version', '3': 8, '4': 1, '5': 9, '10': 'schemaVersion'},
   ],
 };
 
 /// Descriptor for `ClientStreamChunk`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List clientStreamChunkDescriptor = $convert.base64Decode(
     'ChFDbGllbnRTdHJlYW1DaHVuaxIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW9uSWQSLgoGZn'
-    'JhbWVzGAIgAygLMhYubWouc2lnbi5MYW5kbWFya0ZyYW1lUgZmcmFtZXM=');
+    'JhbWVzGAIgAygLMhYubWouc2lnbi5MYW5kbWFya0ZyYW1lUgZmcmFtZXMSJQoOY2h1bmtfc2Vx'
+    'dWVuY2UYAyABKARSDWNodW5rU2VxdWVuY2USGQoIY2h1bmtfaWQYBCABKAlSB2NodW5rSWQSHQ'
+    'oKc2VnbWVudF9pZBgFIAEoCVIJc2VnbWVudElkEiQKDmVuZF9vZl9zZWdtZW50GAYgASgIUgxl'
+    'bmRPZlNlZ21lbnQSHAoKc2VudF9hdF9tcxgHIAEoA1IIc2VudEF0TXMSJQoOc2NoZW1hX3Zlcn'
+    'Npb24YCCABKAlSDXNjaGVtYVZlcnNpb24=');
 
 @$core.Deprecated('Use translationResultDescriptor instead')
 const TranslationResult$json = {

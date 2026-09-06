@@ -6,7 +6,7 @@
 
 | 파일 | 기능 | 주요 선언 | SHA-256 |
 |---|---|---|---|
-| `project_analysis_harness.py` | """Generate and select compact per-folder file indexes for repository analysis.""" | `is_skipped`, `digest`, `readable_text`, `first_meaningful_line`, `declarations`, `fallback_purpose`, `describe`, `indexed_files` | `d8ed5b4ff591` |
+| `project_analysis_harness.py` | """Generate and select compact per-folder file indexes for repository analysis.""" | `is_skipped`, `digest`, `readable_text`, `first_meaningful_line`, `declarations`, `fallback_purpose`, `describe`, `indexed_files` | `b6250efda37a` |
 | `regenerate_mock_protobuf.sh` | 개발·검증 작업을 자동 실행하는 명령 스크립트다. | — | `7c95ce56131c` |
 | `regenerate_protobuf.sh` | 개발·검증 작업을 자동 실행하는 명령 스크립트다. | — | `910b9986b52d` |
 | `run_eval_fixtures.py` | ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) | `build_chunk`, `load_fixtures`, `validate_fixture`, `request_for_fixture`, `post_json`, `evaluate_response`, `main` | `18b1eafb4fa0` |
